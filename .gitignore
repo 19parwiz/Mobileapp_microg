@@ -1,0 +1,272 @@
+# ============================================
+# ROOT PROJECT - Git Ignore Rules
+# ============================================
+
+# ============================================
+# BACKEND (Spring Boot / Java / Maven)
+# ============================================
+
+# Maven
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Compiled class files
+backend/**/*.class
+
+# JAR files
+backend/**/*.jar
+backend/**/*.war
+backend/**/*.ear
+backend/**/*.nar
+
+# Log files
+backend/**/*.log
+
+# Sensitive configuration files (DO NOT COMMIT)
+backend/src/main/resources/application.properties
+backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-dev.properties
+backend/src/main/resources/application-prod.properties
+
+# Keep example/template files
+!backend/src/main/resources/application.properties.example
+
+# ============================================
+# MOBILE (Flutter / Dart)
+# ============================================
+
+# Flutter/Dart
+mobile/.dart_tool/
+mobile/.packages
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/pubspec.lock
+
+# Build outputs
+mobile/build/
+mobile/**/build/
+
+# Android
+mobile/android/.gradle/
+mobile/android/app/*.keystore
+mobile/android/app/*.jks
+mobile/android/local.properties
+mobile/android/.idea/
+mobile/android/*.iml
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/android/.cxx/
+mobile/android/.externalNativeBuild/
+mobile/android/captures/
+
+# iOS
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/FlutterPluginRegistrant/
+mobile/ios/Flutter/.last_build_id
+mobile/ios/Flutter/ephemeral/
+mobile/ios/.generated/
+mobile/ios/Flutter/App.framework
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/ServiceDefinitions.json
+mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# macOS
+mobile/macos/Flutter/ephemeral/
+mobile/macos/Flutter/Flutter-Debug.xcconfig
+mobile/macos/Flutter/Flutter-Release.xcconfig
+mobile/macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Linux
+mobile/linux/flutter/ephemeral/
+
+# Windows
+mobile/windows/flutter/ephemeral/
+
+# Generated files
+mobile/**/*.g.dart
+mobile/**/*.freezed.dart
+mobile/**/*.mocks.dart
+
+# Coverage
+mobile/coverage/
+mobile/.coverage
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+*.swp
+*.swo
+*~
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# NetBeans
+nbproject/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ============================================
+# OS Files
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# Environment & Secrets
+# ============================================
+
+# Environment variables
+.env
+.env.*
+!.env.example
+*.env
+!.env.template
+
+# Secrets & Keys
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+secrets/
+*.secret
+*.credentials
+
+# ============================================
+# Logs & Temporary Files
+# ============================================
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+
+# ============================================
+# Large Files & Archives
+# ============================================
+
+# Large binary files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Media files (if large, uncomment)
+# *.mp4
+# *.mov
+# *.avi
+# *.mkv
+# *.mp3
+# *.wav
+
+# ============================================
+# Documentation Build Files
+# ============================================
+
+# Generated documentation
+docs/_build/
+site/
+
+# ============================================
+# Docker
+# ============================================
+
+# Docker volumes
+docker-volumes/
+
+# ============================================
+# Testing
+# ============================================
+
+# Test coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# ============================================
+# Project-Specific Files
+# ============================================
+
+# Git commit guide (internal documentation, not for repository)
+GIT_COMMIT_GUIDE.md
+COMMIT_STEPS.md
+
+# ============================================
+# Miscellaneous
+# ============================================
+
+# Package manager lock files (optional - some teams commit these)
+# node_modules/  # Uncomment if you have Node.js dependencies
+
+# Python (if you have Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Node.js (if you have Node.js dependencies)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
