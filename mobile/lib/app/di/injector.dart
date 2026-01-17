@@ -23,11 +23,20 @@ import '../../features/profile/data/profile_repository.dart';
 import '../../features/ai/data/prediction_repository_impl.dart';
 import '../../features/ai/domain/repositories/i_prediction_repository.dart';
 import '../../features/ai/domain/usecases/generate_prediction_use_case.dart';
-import '../../features/device/data/device_api.dart';
+import '../../features/device/data/device_data_source.dart';
 import '../../features/device/data/device_repository.dart';
 import '../../features/device/domain/repositories/i_device_repository.dart';
 import '../../features/device/domain/usecases/device_use_cases.dart';
 import '../../features/device/presentation/device_provider.dart';
+import '../../features/home/presentation/home_provider.dart';
+import '../../features/my_plants/data/plant_data_source.dart';
+import '../../features/my_plants/data/plant_repository_impl.dart';
+import '../../features/my_plants/domain/repositories/i_plant_repository.dart';
+import '../../features/my_plants/domain/usecases/get_plants_use_case.dart';
+import '../../features/my_plants/domain/usecases/add_plant_use_case.dart';
+import '../../features/my_plants/domain/usecases/update_plant_use_case.dart';
+import '../../features/my_plants/domain/usecases/delete_plant_use_case.dart';
+import '../../features/my_plants/presentation/providers/PlantProvider.dart';
 
 final getIt = GetIt.instance;
 
@@ -71,28 +80,18 @@ Future<void> setupDependencyInjection() async {
     () => PredictionRepositoryImpl(),
   );
 
-  // Device dependencies
-  getIt.registerLazySingleton<DeviceApi>(
-    () => DeviceApi(
-      httpClient: getIt<http.Client>(),
-      secureStorage: getIt<FlutterSecureStorage>(),
-    ),
-  );
+  // Device dependencies (using mock data for now, will replace with API later)
+  getIt.registerLazySingleton<DeviceDataSource>(() => DeviceDataSource());
 
   getIt.registerLazySingleton<IDeviceRepository>(
     () => DeviceRepository(
-      deviceApi: getIt<DeviceApi>(),
+      deviceDataSource: getIt<DeviceDataSource>(),
       secureStorage: getIt<FlutterSecureStorage>(),
     ),
   );
 
-  // Device repository - handles CRUD against backend /devices
-  getIt.registerLazySingleton<DeviceRepository>(
-    () => DeviceRepositoryImpl(
-      httpClient: getIt<http.Client>(),
-      secureStorage: getIt<FlutterSecureStorage>(),
-    ),
-  );
+  // Device repository is already registered above as IDeviceRepository
+  // No need for duplicate registration
 
   // Use cases (presentation depends ONLY on these)
   getIt.registerLazySingleton<LoginUseCase>(
@@ -128,6 +127,11 @@ Future<void> setupDependencyInjection() async {
     () => GetSensorDataUseCase(sensorRepository: getIt<ISensorRepository>()),
   );
 
+  // Home provider (dashboard) depends on sensor use case
+  getIt.registerLazySingleton<HomeProvider>(
+    () => HomeProvider(getSensorDataUseCase: getIt<GetSensorDataUseCase>()),
+  );
+
   getIt.registerLazySingleton<GeneratePredictionUseCase>(
     () => GeneratePredictionUseCase(
       predictionRepository: getIt<IPredictionRepository>(),
@@ -159,6 +163,34 @@ Future<void> setupDependencyInjection() async {
       createDeviceUseCase: getIt<CreateDeviceUseCase>(),
       updateDeviceUseCase: getIt<UpdateDeviceUseCase>(),
       deleteDeviceUseCase: getIt<DeleteDeviceUseCase>(),
+    ),
+  );
+
+  // My Plants feature - Data, repository, use cases and provider (mock/local)
+  getIt.registerLazySingleton<PlantDataSource>(() => PlantDataSource());
+  getIt.registerLazySingleton<IPlantRepository>(
+    () => PlantRepositoryImpl(dataSource: getIt<PlantDataSource>()),
+  );
+
+  getIt.registerLazySingleton<GetPlantsUseCase>(
+    () => GetPlantsUseCase(repository: getIt<IPlantRepository>()),
+  );
+  getIt.registerLazySingleton<AddPlantUseCase>(
+    () => AddPlantUseCase(repository: getIt<IPlantRepository>()),
+  );
+  getIt.registerLazySingleton<UpdatePlantUseCase>(
+    () => UpdatePlantUseCase(repository: getIt<IPlantRepository>()),
+  );
+  getIt.registerLazySingleton<DeletePlantUseCase>(
+    () => DeletePlantUseCase(repository: getIt<IPlantRepository>()),
+  );
+
+  getIt.registerLazySingleton<PlantProvider>(
+    () => PlantProvider(
+      getPlantsUseCase: getIt<GetPlantsUseCase>(),
+      addPlantUseCase: getIt<AddPlantUseCase>(),
+      updatePlantUseCase: getIt<UpdatePlantUseCase>(),
+      deletePlantUseCase: getIt<DeletePlantUseCase>(),
     ),
   );
 

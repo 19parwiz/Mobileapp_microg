@@ -28,8 +28,23 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: () => context.go(AppRouter.home),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppSizes.radiusM),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+            tooltip: 'Go back',
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
         ),
         title: const Text('My Devices'),
         actions: [

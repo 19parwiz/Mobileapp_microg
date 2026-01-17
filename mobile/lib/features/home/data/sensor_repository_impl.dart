@@ -10,14 +10,21 @@ class SensorRepositoryImpl implements ISensorRepository {
 
   @override
   SensorDashboardData getDashboardData({required bool refresh, int hours = 24}) {
+    print('📡 [SensorRepositoryImpl] Getting sensor data (refresh: $refresh)');
+    print('   📍 Source: MOCK DATA from SensorDataService (no real sensors connected)');
+    
     if (refresh) {
+      print('    Refreshing sensor data...');
       _service.generateRandomData();
     }
 
-    return SensorDashboardData(
+    final data = SensorDashboardData(
       sensorData: _service.getAllSensors(),
       chartData: _service.getHistoricalData(hours: hours),
     );
+    
+    print('    Returned ${data.sensorData.length} sensor readings');
+    return data;
   }
 }
 

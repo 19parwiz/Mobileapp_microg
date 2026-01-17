@@ -1,5 +1,5 @@
-import '../domain/device.dart';
-import '../domain/repositories/i_device_repository.dart';
+import '../device.dart';
+import '../repositories/i_device_repository.dart';
 
 class GetAllDevicesUseCase {
   final IDeviceRepository _repository;

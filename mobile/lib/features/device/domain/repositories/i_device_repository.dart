@@ -1,4 +1,4 @@
-import '../domain/device.dart';
+import '../device.dart';
 
 abstract class IDeviceRepository {
   Future<List<Device>> getAllDevices();

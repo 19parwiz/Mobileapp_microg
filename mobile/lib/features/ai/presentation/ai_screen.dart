@@ -1,30 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../app/di/injector.dart';
+import '../../../app/router/app_router.dart';
 import '../domain/usecases/generate_prediction_use_case.dart';
 
 /// Placeholder AI predictions screen
 class AIScreen extends StatelessWidget {
-  const AIScreen({super.key});
+  /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
+  final bool showAppBar;
+  
+  const AIScreen({super.key, this.showAppBar = false});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(
-          onPressed: () => context.go(AppRouter.home),
-        ),
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.eco, color: AppColors.primary),
-            SizedBox(width: AppSizes.spacingS),
-            Text('AI Predictions'),
-          ],
-        ),
-      ),
-      body: SafeArea(
+    Widget content = SafeArea(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -76,8 +67,30 @@ class AIScreen extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
+    
+    // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
+    if (showAppBar) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: BackButton(
+            onPressed: () => context.go(AppRouter.home),
+          ),
+          title: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.eco, color: AppColors.primary),
+              SizedBox(width: AppSizes.spacingS),
+              Text('AI Predictions'),
+            ],
+          ),
+        ),
+        body: content,
+      );
+    }
+    
+    // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold)
+    return content;
   }
 }
 

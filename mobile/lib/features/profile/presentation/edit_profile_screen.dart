@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/utils/validators.dart';
@@ -98,7 +99,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(AppSizes.radiusM),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+            tooltip: 'Go back',
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ),
         title: const Text('Edit Profile'),
         actions: [
           TextButton(
@@ -166,10 +184,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     // Name field
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
+                      enabled: true,
+                      decoration: InputDecoration(
                         labelText: 'Name',
-                        prefixIcon: Icon(Icons.person),
+                        prefixIcon: const Icon(Icons.person),
                         hintText: 'Enter your name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface,
                       ),
                       textCapitalization: TextCapitalization.words,
                     ),
@@ -178,12 +202,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     // Email field
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(
+                      enabled: true,
+                      decoration: InputDecoration(
                         labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
+                        prefixIcon: const Icon(Icons.email),
                         hintText: 'Enter your email',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface,
                       ),
-                      keyboardType: TextInputType.text,
+                      keyboardType: TextInputType.emailAddress,
                       validator: Validators.email,
                     ),
                     const SizedBox(height: AppSizes.spacingM),
@@ -191,12 +221,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     // Phone field
                     TextFormField(
                       controller: _phoneController,
-                      decoration: const InputDecoration(
+                      enabled: true,
+                      decoration: InputDecoration(
                         labelText: 'Phone Number',
-                        prefixIcon: Icon(Icons.phone),
+                        prefixIcon: const Icon(Icons.phone),
                         hintText: 'Enter your phone number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                        ),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface,
                       ),
-                      keyboardType: TextInputType.text,
+                      keyboardType: TextInputType.phone,
                       validator: Validators.phone,
                     ),
                     const SizedBox(height: AppSizes.spacingXL),

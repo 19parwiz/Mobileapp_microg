@@ -5,6 +5,8 @@ import '../../features/camera/presentation/camera_screen.dart';
 import '../../features/ai/presentation/ai_screen.dart';
 import '../../features/my_plants/presentation/my_plants_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
+import '../../app/router/app_router.dart';
+import 'package:go_router/go_router.dart';
 
 /// Main scaffold widget with bottom navigation bar
 /// Maintains state when switching tabs using IndexedStack
@@ -15,81 +17,75 @@ class MainScaffold extends StatefulWidget {
   State<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> with SingleTickerProviderStateMixin {
+class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
-  late final List<Widget> _screens;
-  late final AnimationController _animationController;
-  late final Animation<double> _fadeAnimation;
+  final Map<int, Widget?> _screenCache = {};
+  static const int _screenCount = 5;
 
-  @override
-  void initState() {
-    super.initState();
-    
-    // Initialize screens - these will maintain their state
-    _screens = const [
-      HomeScreen(),
-      CameraScreen(),
-      AIScreen(),
-      MyPlantsScreen(),
-      MoreScreen(),
-    ];
-    
-    // Setup animation controller for subtle tab switching animation
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-    
-    _animationController.forward();
+  // Build screen lazily on first access to prevent blocking
+  Widget _buildScreen(int index) {
+    if (_screenCache[index] != null) {
+      return _screenCache[index]!;
+    }
+
+    late final Widget screen;
+    switch (index) {
+      case 0:
+        screen = HomeScreen();
+        break;
+      case 1:
+        screen = CameraScreen();
+        break;
+      case 2:
+        screen = AIScreen();
+        break;
+      case 3:
+        screen = MyPlantsScreen();
+        break;
+      case 4:
+        screen = MoreScreen();
+        break;
+      default:
+        screen = HomeScreen();
+    }
+
+    _screenCache[index] = screen;
+    return screen;
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _screenCache.clear();
     super.dispose();
   }
 
   void _onTabTapped(int index) {
     // Validate index is within bounds
-    if (index < 0 || index >= _screens.length) {
-      debugPrint('Invalid tab index: $index. Valid range: 0-${_screens.length - 1}');
+    if (index < 0 || index >= _screenCount) {
+      debugPrint('Invalid tab index: $index. Valid range: 0-${_screenCount - 1}');
       return;
     }
-    
+    debugPrint('MainScaffold: tab tapped $index (current=$_currentIndex)');
     if (index != _currentIndex) {
-      // Animate tab switch
-      _animationController.reset();
+      // Switch internal tabs
+      debugPrint('MainScaffold: about to setState for index $index');
       setState(() {
+        debugPrint('MainScaffold: switching internal tab from $_currentIndex to $index');
         _currentIndex = index;
       });
-      _animationController.forward();
+      debugPrint('MainScaffold: setState done, _currentIndex now $_currentIndex');
+    } else {
+      debugPrint('MainScaffold: tapped same tab $index, doing nothing');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Ensure screens are initialized and currentIndex is within valid range
-    if (_screens.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    
-    final safeIndex = _currentIndex.clamp(0, _screens.length - 1);
+    final safeIndex = _currentIndex.clamp(0, _screenCount - 1);
+    debugPrint('MainScaffold build: _currentIndex=$_currentIndex, safeIndex=$safeIndex');
     
     return Scaffold(
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: IndexedStack(
-          index: safeIndex,
-          children: _screens,
-        ),
-      ),
+      body: _buildScreen(safeIndex),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [

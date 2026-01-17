@@ -1,24 +1,23 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 import '../../../core/utils/logger.dart';
 import '../domain/device.dart';
 import '../domain/repositories/i_device_repository.dart';
-import 'device_api.dart';
+import 'device_data_source.dart';
 
 class DeviceRepository implements IDeviceRepository {
-  final DeviceApi _deviceApi;
+  final DeviceDataSource _deviceDataSource;
   final FlutterSecureStorage _secureStorage;
 
   DeviceRepository({
-    required DeviceApi deviceApi,
+    required DeviceDataSource deviceDataSource,
     required FlutterSecureStorage secureStorage,
-  })  : _deviceApi = deviceApi,
+  })  : _deviceDataSource = deviceDataSource,
         _secureStorage = secureStorage;
 
   @override
   Future<List<Device>> getAllDevices() async {
     try {
-      final devices = await _deviceApi.getAllDevices();
+      final devices = await _deviceDataSource.getAllDevices();
       AppLogger.i('Fetched ${devices.length} devices');
       return devices;
     } catch (e) {
@@ -30,7 +29,10 @@ class DeviceRepository implements IDeviceRepository {
   @override
   Future<Device> getDeviceById(int id) async {
     try {
-      final device = await _deviceApi.getDeviceById(id);
+      final device = await _deviceDataSource.getDeviceById(id);
+      if (device == null) {
+        throw Exception('Device not found with id: $id');
+      }
       AppLogger.i('Fetched device with id: $id');
       return device;
     } catch (e) {
@@ -41,14 +43,23 @@ class DeviceRepository implements IDeviceRepository {
 
   @override
   Future<Device> getDeviceByDeviceId(String deviceId) async {
-    // This would need a backend endpoint, for now throw not implemented
-    throw UnimplementedError('getDeviceByDeviceId not implemented');
+    try {
+      final device = await _deviceDataSource.getDeviceByDeviceId(deviceId);
+      if (device == null) {
+        throw Exception('Device not found with deviceId: $deviceId');
+      }
+      AppLogger.i('Fetched device with deviceId: $deviceId');
+      return device;
+    } catch (e) {
+      AppLogger.e('DeviceRepository.getDeviceByDeviceId error', e);
+      rethrow;
+    }
   }
 
   @override
   Future<Device> createDevice(Device device) async {
     try {
-      final createdDevice = await _deviceApi.createDevice(device);
+      final createdDevice = await _deviceDataSource.addDevice(device);
       AppLogger.i('Created device: ${createdDevice.name}');
       return createdDevice;
     } catch (e) {
@@ -60,7 +71,7 @@ class DeviceRepository implements IDeviceRepository {
   @override
   Future<Device> updateDevice(int id, Device device) async {
     try {
-      final updatedDevice = await _deviceApi.updateDevice(id, device);
+      final updatedDevice = await _deviceDataSource.updateDevice(device);
       AppLogger.i('Updated device with id: $id');
       return updatedDevice;
     } catch (e) {
@@ -72,7 +83,7 @@ class DeviceRepository implements IDeviceRepository {
   @override
   Future<void> deleteDevice(int id) async {
     try {
-      await _deviceApi.deleteDevice(id);
+      await _deviceDataSource.deleteDevice(id);
       AppLogger.i('Deleted device with id: $id');
     } catch (e) {
       AppLogger.e('DeviceRepository.deleteDevice error', e);

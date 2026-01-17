@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../app/router/app_router.dart';
+import 'package:go_router/go_router.dart';
 
 /// Camera screen that lists device cameras and shows a live preview.
 ///
@@ -13,7 +15,10 @@ import '../../../core/constants/app_sizes.dart';
 /// - Provides a "Capture" button (placeholder for now).
 /// - Includes fade-in animation for the preview and subtle scaling for list items.
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
+  final bool showAppBar;
+  
+  const CameraScreen({super.key, this.showAppBar = false});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -48,12 +53,20 @@ class _CameraScreenState extends State<CameraScreen>
   }
 
   /// Dispose the camera controller and attempt to close this screen.
+  /// Only works when used as a separate route, not when embedded in MainScaffold.
   void _closeCameraScreen() {
     // Controller will also be disposed in [dispose], but we null it here so
     // we stop using it immediately after closing.
     _controller?.dispose();
     _controller = null;
-    Navigator.of(context).maybePop();
+    // Only pop if we're in a navigator stack (not when embedded in MainScaffold)
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      // When opened via GoRouter (MainScaffold -> context.go), there may be
+      // no Navigator stack to pop. Use GoRouter to navigate back to home.
+      context.go(AppRouter.home);
+    }
   }
 
   /// Discover available cameras on the device and initialize the first one.
@@ -232,17 +245,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-        title: const Text('Camera'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: _closeCameraScreen,
-        ),
-      ),
-      body: SafeArea(
+    Widget content = SafeArea(
         child: Column(
           children: [
             // Live camera preview section.
@@ -322,7 +325,25 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ],
         ),
-      ),
-    );
+      );
+    
+    // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
+    if (widget.showAppBar) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
+          title: const Text('Camera'),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: _closeCameraScreen,
+          ),
+        ),
+        body: content,
+      );
+    }
+    
+    // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold)
+    return content;
   }
 }

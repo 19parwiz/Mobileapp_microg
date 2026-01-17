@@ -1,138 +1,312 @@
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/widgets/app_loading.dart';
+import '../../../core/widgets/error_page.dart';
+import 'providers/PlantProvider.dart';
+import 'PlantCard.dart/PlantCard.dart';
+import 'PlantCard.dart/add_plant_dialog.dart';
+import '../../../features/my_plants/domain/entities/Plant.dart';
+import '../../../app/di/injector.dart';
+import '../../my_plants/domain/usecases/get_plants_use_case.dart';
+import '../../my_plants/domain/usecases/add_plant_use_case.dart';
+import '../../my_plants/domain/usecases/update_plant_use_case.dart';
+import '../../my_plants/domain/usecases/delete_plant_use_case.dart';
+import '../../my_plants/data/plant_repository_impl.dart';
+import '../../my_plants/data/plant_data_source.dart';
 
-/// Placeholder \"My Plants\" screen for managing the user's plant collection.
+/// My Plants screen for managing microgreen plants
 class MyPlantsScreen extends StatelessWidget {
-  const MyPlantsScreen({super.key});
+  /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
+  final bool showAppBar;
+  
+  const MyPlantsScreen({super.key, this.showAppBar = false});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Plants'),
+  Future<void> _showAddPlantDialog(BuildContext context, PlantProvider provider) async {
+    final result = await showDialog<Plant>(
+      context: context,
+      builder: (context) => const AddPlantDialog(),
+    );
+    
+    if (result != null) {
+      await provider.addPlant(result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${result.name} added successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showEditPlantDialog(BuildContext context, PlantProvider provider, Plant plant) async {
+    final result = await showDialog<Plant>(
+      context: context,
+      builder: (context) => AddPlantDialog(plant: plant),
+    );
+    
+    if (result != null) {
+      await provider.updatePlant(result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${result.name} updated successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(BuildContext context, PlantProvider provider, Plant plant) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Plant'),
+        content: Text('Are you sure you want to delete "${plant.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+    );
+
+    if (confirmed == true && context.mounted) {
+      await provider.deletePlant(plant.id!);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${plant.name} deleted'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildEmptyState(BuildContext context, PlantProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.paddingXL),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingXL),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.local_florist,
+                size: 64,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: AppSizes.spacingL),
+            Text(
+              'No Plants Yet',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+            ),
+            const SizedBox(height: AppSizes.spacingM),
+            Text(
+              'Start growing your microgreens! Add your first plant to track its growth and health.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSizes.spacingXL),
+            ElevatedButton.icon(
+              onPressed: () => _showAddPlantDialog(context, provider),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Your First Plant'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textOnPrimary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingL,
+                  vertical: AppSizes.paddingM,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, PlantProvider provider) {
+    if (provider.isLoading) {
+      return const Center(child: AppLoading());
+    }
+
+    if (provider.hasError) {
+      return Center(
+        child: Padding(
           padding: const EdgeInsets.all(AppSizes.paddingL),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Search plants',
-                  prefixIcon: Icon(Icons.search),
-                ),
-              ),
-              const SizedBox(height: AppSizes.spacingL),
-              Text(
-                'My Garden',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red,
               ),
               const SizedBox(height: AppSizes.spacingM),
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusL),
+              Text(
+                'Error Loading Plants',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSizes.spacingS),
+              Text(
+                provider.errorMessage ?? 'Unknown error',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSizes.spacingL),
+              ElevatedButton(
+                onPressed: () => provider.refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (provider.plants.isEmpty) {
+      return _buildEmptyState(context, provider);
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => provider.refresh(),
+      child: ListView(
+        padding: const EdgeInsets.all(AppSizes.paddingL),
+        children: [
+          // Header with plant count
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'My Garden',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingM,
+                  vertical: AppSizes.paddingXS,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.paddingL),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppSizes.paddingS),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius:
-                                  BorderRadius.circular(AppSizes.radiusM),
-                            ),
-                            child: const Icon(
-                              Icons.spa,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.spacingM),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'No plants added',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                                const SizedBox(height: AppSizes.spacingXS),
-                                Text(
-                                  'Manage your microgreens, track growth, and see care tips here.',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.spacingL),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Plant management coming soon!',
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Plant'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.textOnPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                ),
+                child: Text(
+                  '${provider.plantCount} plant${provider.plantCount == 1 ? '' : 's'}',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: AppSizes.spacingL),
+          
+          // Plant cards
+          ...provider.plants.map((plant) => PlantCard(
+                plant: plant,
+                onEdit: () => _showEditPlantDialog(context, provider, plant),
+                onDelete: () => _showDeleteConfirmation(context, provider, plant),
+              )),
+        ],
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    // Use the DI-registered PlantProvider (do NOT recreate or dispose it here)
+    final provider = context.watch<PlantProvider>();
+
+    // Trigger initial fetch once after first build when necessary
+    if (!provider.isLoading && !provider.hasError && provider.plants.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        provider.fetchPlants();
+      });
+    }
+
+    Widget content = SafeArea(
+      child: Column(
+        children: [
+          // Search bar (optional - can be added later)
+          // For now, just show the content
+          Expanded(
+            child: _buildContent(context, provider),
+          ),
+        ],
+      ),
+    );
+
+    // Floating action button for adding plants
+    if (!provider.isLoading && !provider.hasError) {
+      content = Stack(
+        children: [
+          content,
+          Positioned(
+            bottom: AppSizes.spacingL,
+            right: AppSizes.spacingL,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showAddPlantDialog(context, provider),
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Plant'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
+    if (showAppBar) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('My Plants'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => provider.refresh(),
+              tooltip: 'Refresh',
+            ),
+          ],
+        ),
+        body: content,
+      );
+    }
+
+    // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold)
+    return content;
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

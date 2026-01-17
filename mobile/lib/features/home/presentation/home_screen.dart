@@ -12,7 +12,10 @@ import '../../../app/router/app_router.dart';
 import 'home_provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
+  final bool showAppBar;
+  
+  const HomeScreen({super.key, this.showAppBar = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -131,28 +134,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (!didPop) {
-          _handleBackButton();
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.eco,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: AppSizes.spacingS),
-              const Text(AppStrings.home),
-            ],
-          ),
-        ),
-        body: Consumer<HomeProvider>(
+    Widget content = Consumer<HomeProvider>(
           builder: (context, provider, child) {
             // Loading state with skeletons
             if (provider.isLoading) {
@@ -634,9 +616,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             );
           },
+        );
+    
+    // If showAppBar is true (standalone route), wrap in Scaffold with AppBar and PopScope
+    if (widget.showAppBar) {
+      return PopScope(
+        canPop: false,
+        onPopInvoked: (didPop) {
+          if (!didPop) {
+            _handleBackButton();
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.eco,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: AppSizes.spacingS),
+                const Text(AppStrings.home),
+              ],
+            ),
+          ),
+          body: content,
         ),
-      ),
-    );
+      );
+    }
+    
+    // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold, no PopScope)
+    return content;
   }
 }
 

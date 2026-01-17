@@ -7,6 +7,9 @@ import '../../features/ai/presentation/ai_screen.dart';
 import '../../features/device/presentation/device_list_screen.dart';
 import '../../features/device/presentation/add_device_screen.dart';
 import '../../features/device/presentation/edit_device_screen.dart';
+import '../../features/device/presentation/device_detail_screen.dart';
+import '../../core/widgets/main_scaffold.dart';
+import '../../core/widgets/error_page.dart';
 
 /// GoRouter configuration with /home and /profile routes
 /// Includes error handling for invalid routes
@@ -63,12 +66,12 @@ class AppRouter {
       GoRoute(
         path: camera,
         name: cameraName,
-        builder: (context, state) => const CameraScreen(),
+        builder: (context, state) => const CameraScreen(showAppBar: true),
       ),
       GoRoute(
         path: ai,
         name: aiName,
-        builder: (context, state) => const AIScreen(),
+        builder: (context, state) => const AIScreen(showAppBar: true),
       ),
       GoRoute(
         path: devices,
@@ -93,7 +96,7 @@ class AppRouter {
         name: deviceDetailName,
         builder: (context, state) {
           final id = int.parse(state.pathParameters['id']!);
-          return EditDeviceScreen(deviceId: id); // For now, reuse edit screen
+          return DeviceDetailScreen(deviceId: id);
         },
       ),
     ],

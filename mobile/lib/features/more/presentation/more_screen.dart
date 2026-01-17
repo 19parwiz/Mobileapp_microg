@@ -9,21 +9,20 @@ import 'package:provider/provider.dart';
 
 /// Placeholder "More" screen for additional options and info.
 class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key});
+  /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
+  final bool showAppBar;
+  
+  const MoreScreen({super.key, this.showAppBar = false});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Consumer<ThemeProvider>(
+    Widget content = Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         final isDark = themeProvider.isDarkMode;
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('More'),
-          ),
-          body: SafeArea(
+        return SafeArea(
             child: ListView(
               padding: const EdgeInsets.all(AppSizes.paddingL),
               children: [
@@ -111,9 +110,21 @@ class MoreScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
         );
       },
     );
+    
+    // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
+    if (showAppBar) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('More'),
+        ),
+        body: content,
+      );
+    }
+    
+    // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold)
+    return content;
   }
 }

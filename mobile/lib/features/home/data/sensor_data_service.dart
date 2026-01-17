@@ -1,4 +1,4 @@
-import 'dart:math';
+  import 'dart:math';
 import '../domain/sensor_data.dart';
 
 /// Service for managing sensor data with mock/random data generation
@@ -54,6 +54,8 @@ class SensorDataService {
   }
 
   /// Generate random sensor data for demo purposes
+  /// NOTE: This is MOCK DATA - no real sensors are connected!
+  /// Data is generated randomly for testing/demo purposes only.
   void generateRandomData() {
     // Temperature: 18-28°C
     _temperature = 18.0 + _random.nextDouble() * 10.0;
@@ -66,6 +68,13 @@ class SensorDataService {
     // Light: 300-1200 lux
     _light = 300.0 + _random.nextDouble() * 900.0;
     _light = double.parse(_light.toStringAsFixed(0));
+    
+    // Log to console where data is coming from
+    print('📊 [SensorDataService] Generating MOCK sensor data:');
+    print('   🌡️  Temperature: $_temperature°C (MOCK - Random: 18-28°C)');
+    print('   💧 Humidity: $_humidity% (MOCK - Random: 50-80%)');
+    print('   💡 Light: $_light lux (MOCK - Random: 300-1200 lux)');
+    print('   ⚠️  WARNING: No real sensors connected! This is simulated data.');
     
     // Add to historical data
     _historicalData.addAll(getAllSensors());

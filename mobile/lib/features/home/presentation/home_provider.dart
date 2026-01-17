@@ -22,7 +22,9 @@ class HomeProvider extends ChangeNotifier {
   HomeProvider({required GetSensorDataUseCase getSensorDataUseCase})
       : _getSensorDataUseCase = getSensorDataUseCase {
     _initializeData();
-    _startAutoUpdate();
+    // Auto-update disabled for now - will be enabled when real sensors are connected
+    // Update frequency will be hourly/daily based on real sensor requirements
+    // _startAutoUpdate();
   }
 
   /// Initialize sensor data
@@ -44,11 +46,13 @@ class HomeProvider extends ChangeNotifier {
     }
   }
 
-  /// Start automatic data updates every 5 seconds
+  /// Start automatic data updates (disabled for now - will be hourly/daily when real sensors are connected)
   void _startAutoUpdate() {
-    _updateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      updateSensorData();
-    });
+    // Disabled: Updates every 5 seconds was too frequent
+    // When real sensors are connected, update hourly or daily
+    // _updateTimer = Timer.periodic(const Duration(hours: 1), (timer) {
+    //   updateSensorData();
+    // });
   }
 
   /// Update sensor data with new random values
