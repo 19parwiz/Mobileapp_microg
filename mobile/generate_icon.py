@@ -61,5 +61,5 @@ for angle in [0, 90, 180, 270]:
 
 # Save the image
 image.save('app_icon.png')
-print("✅ App icon created: app_icon.png (512x512 PNG)")
-print("📁 Location: d:\\DiplomaMobileAPP\\mobile\\app_icon.png")
+print(" App icon created: app_icon.png (512x512 PNG)")
+print(" Location: d:\\DiplomaMobileAPP\\mobile\\app_icon.png")
