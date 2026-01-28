@@ -12,6 +12,7 @@ import 'features/profile/presentation/profile_provider.dart';
 import 'features/device/presentation/device_provider.dart';
 import 'features/home/presentation/home_provider.dart';
 import 'features/my_plants/presentation/providers/PlantProvider.dart';
+import 'core/l10n/localization_provider.dart';
 
 // PlantProvider uses MockGetPlants internally
 
@@ -65,6 +66,17 @@ class MyApp extends StatelessWidget {
           create: (_) => ThemeProvider(),
         ),
 
+        /// 🌍 LOCALIZATION PROVIDER (for language support)
+        /// Supports: English (en), Farsi (fa), Kazakh (kk), Russian (ru)
+        /// Initializes with default English language
+        ChangeNotifierProvider<LocalizationProvider>(
+          create: (_) {
+            final localizationProvider = LocalizationProvider();
+            localizationProvider.initializeLanguage('en'); // Default language
+            return localizationProvider;
+          },
+        ),
+
         /// 👤 PROFILE PROVIDER
         ChangeNotifierProvider<ProfileProvider>(
           create: (_) => ProfileProvider(
@@ -101,3 +113,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+

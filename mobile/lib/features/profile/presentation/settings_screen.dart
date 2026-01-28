@@ -4,9 +4,23 @@ import 'package:go_router/go_router.dart';
 import '../../../app/theme/theme_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/l10n/localization_provider.dart';
+import '../../../core/l10n/app_localization.dart';
 import 'profile_provider.dart';
 
-/// Simple Settings screen without complex dialogs
+/// Settings screen with language support for English, Farsi, Kazakh, and Russian
+/// 
+/// LANGUAGE SUPPORT ADDED:
+/// - English (en)
+/// - Farsi (fa)
+/// - Kazakh (kk)
+/// - Russian (ru)
+///
+/// The language preference is:
+/// 1. Stored in app settings (via ProfileProvider)
+/// 2. Managed by LocalizationProvider for app-wide access
+/// 3. Can be changed through the language selection dialog
+///
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -34,15 +48,17 @@ class SettingsScreen extends StatelessWidget {
         ),
         title: const Text('Settings'),
       ),
-      body: Consumer<ProfileProvider>(
-        builder: (context, provider, child) {
+      body: Consumer2<ProfileProvider, LocalizationProvider>(
+        builder: (context, profileProvider, localizationProvider, child) {
+          final strings = localizationProvider.strings;
+
           return SafeArea(
             child: ListView(
               padding: const EdgeInsets.all(AppSizes.paddingL),
               children: [
                 // Theme section
                 Text(
-                  'Appearance',
+                  strings.appearance,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -54,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
                     builder: (context, themeProvider, _) {
                       return ListTile(
                         leading: const Icon(Icons.dark_mode_outlined),
-                        title: const Text('Dark Mode'),
+                        title: Text(strings.darkMode),
                         subtitle: Text(
                           themeProvider.isDarkMode
                               ? 'Dark theme is enabled'
@@ -75,7 +91,7 @@ class SettingsScreen extends StatelessWidget {
                 
                 // Notifications section
                 Text(
-                  'Notifications',
+                  strings.notifications,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
@@ -87,13 +103,13 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.notifications_active),
-                        title: const Text('Enable Notifications'),
+                        title: Text(strings.enableNotifications),
                         trailing: Switch(
-                          value: provider.settings.notificationsEnabled,
+                          value: profileProvider.settings.notificationsEnabled,
                           activeThumbColor: AppColors.primary,
                           onChanged: (value) {
-                            provider.updateSettings(
-                              provider.settings.copyWith(
+                            profileProvider.updateSettings(
+                              profileProvider.settings.copyWith(
                                 notificationsEnabled: value,
                               ),
                             );
@@ -107,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
                 
                 // Preferences section
                 Text(
-                  'Preferences',
+                  strings.preferences,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -116,35 +132,36 @@ class SettingsScreen extends StatelessWidget {
                 Card(
                   child: Column(
                     children: [
+                      /// LANGUAGE SELECTION TILE
+                      /// Allows users to select from 4 supported languages
+                      /// Tapping opens a dialog to choose the language
                       ListTile(
                         leading: const Icon(Icons.language),
-                        title: const Text('Language'),
+                        title: Text(strings.language),
                         subtitle: Text(
-                          provider.settings.language.isEmpty
-                              ? 'English'
-                              : provider.settings.language,
+                          LocalizationService.getLanguageName(
+                            profileProvider.settings.language,
+                          ),
                         ),
-                        onTap: () {
-                          // Simple toggle between en and fa
-                          final newLang =
-                              provider.settings.language == 'en' ? 'fa' : 'en';
-                          provider.updateSettings(
-                            provider.settings.copyWith(language: newLang),
-                          );
-                        },
+                        onTap: () => _showLanguageDialog(
+                          context,
+                          profileProvider,
+                          localizationProvider,
+                          strings,
+                        ),
                       ),
                       const Divider(),
                       ListTile(
                         leading: const Icon(Icons.thermostat),
-                        title: const Text('Temperature Unit'),
-                        subtitle: Text(provider.settings.temperatureUnit == 'C'
+                        title: Text(strings.temperatureUnit),
+                        subtitle: Text(profileProvider.settings.temperatureUnit == 'C'
                             ? 'Celsius (°C)'
                             : 'Fahrenheit (°F)'),
                         onTap: () {
-                          provider.updateSettings(
-                            provider.settings.copyWith(
+                          profileProvider.updateSettings(
+                            profileProvider.settings.copyWith(
                               temperatureUnit:
-                                  provider.settings.temperatureUnit == 'C'
+                                  profileProvider.settings.temperatureUnit == 'C'
                                       ? 'F'
                                       : 'C',
                             ),
@@ -154,15 +171,14 @@ class SettingsScreen extends StatelessWidget {
                       const Divider(),
                       ListTile(
                         leading: const Icon(Icons.refresh),
-                        title: const Text('Auto Refresh'),
-                        subtitle: const Text(
-                            'Automatically refresh sensor data'),
+                        title: Text(strings.autoRefresh),
+                        subtitle: Text(strings.autoRefreshDescription),
                         trailing: Switch(
-                          value: provider.settings.autoRefresh,
+                          value: profileProvider.settings.autoRefresh,
                           activeThumbColor: AppColors.primary,
                           onChanged: (value) {
-                            provider.updateSettings(
-                              provider.settings.copyWith(autoRefresh: value),
+                            profileProvider.updateSettings(
+                              profileProvider.settings.copyWith(autoRefresh: value),
                             );
                           },
                         ),
@@ -177,4 +193,68 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+
+  /// Show language selection dialog
+  /// 
+  /// LANGUAGE SUPPORT:
+  /// - Displays all 4 supported languages (en, fa, kk, ru)
+  /// - Updates both ProfileProvider (for persistence) and LocalizationProvider (for app-wide access)
+  /// - Dialog shows selected language with a checkmark
+  /// - Closes automatically after selection
+  void _showLanguageDialog(
+    BuildContext context,
+    ProfileProvider profileProvider,
+    LocalizationProvider localizationProvider,
+    AppLocalization strings,
+  ) {
+    final languages = [
+      ('en', strings.english),
+      ('fa', strings.farsi),
+      ('kk', strings.kazakh),
+      ('ru', strings.russian),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.language),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: languages.length,
+            itemBuilder: (context, index) {
+              final (code, name) = languages[index];
+              final isSelected = profileProvider.settings.language == code;
+
+              return ListTile(
+                title: Text(name),
+                trailing: isSelected
+                    ? const Icon(Icons.check, color: AppColors.primary)
+                    : null,
+                selected: isSelected,
+                selectedTileColor: AppColors.primary.withOpacity(0.1),
+                onTap: () {
+                  // Update language in profile settings
+                  profileProvider.updateSettings(
+                    profileProvider.settings.copyWith(language: code),
+                  );
+                  // Update localization provider for app-wide use
+                  localizationProvider.setLanguage(code);
+                  Navigator.pop(context);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(strings.cancel),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

@@ -39,12 +39,62 @@ class DeviceProvider with ChangeNotifier {
       _devices = await _getAllDevicesUseCase();
       AppLogger.i('Loaded ${_devices.length} devices');
     } catch (e) {
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      final errorMsg = e.toString().replaceAll('Exception: ', '');
       AppLogger.e('DeviceProvider.loadDevices error', e);
+      
+      // Fallback to demo data if backend is unavailable
+      if (errorMsg.contains('Failed host lookup') || 
+          errorMsg.contains('Connection refused') ||
+          errorMsg.contains('SocketException')) {
+        AppLogger.i('Backend unavailable. Loading demo devices.');
+        _devices = _getDemoDevices();
+        _errorMessage = 'Backend unavailable - showing demo data';
+      } else {
+        _errorMessage = errorMsg;
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Demo devices for offline testing
+  List<Device> _getDemoDevices() {
+    return [
+      Device(
+        id: 1,
+        name: 'Greenhouse Sensor #1',
+        deviceType: 'sensor',
+        location: 'Greenhouse A',
+        description: 'Temperature and humidity monitoring device',
+        isActive: true,
+        deviceId: 'DEV-00001',
+        createdAt: DateTime.now().subtract(const Duration(days: 15)),
+        lastSeen: DateTime.now().subtract(const Duration(hours: 1)),
+      ),
+      Device(
+        id: 2,
+        name: 'Light Controller #1',
+        deviceType: 'controller',
+        location: 'Greenhouse A',
+        description: 'Automated LED grow light controller',
+        isActive: true,
+        deviceId: 'DEV-00002',
+        createdAt: DateTime.now().subtract(const Duration(days: 20)),
+        lastSeen: DateTime.now().subtract(const Duration(minutes: 30)),
+      ),
+      Device(
+        id: 3,
+        name: 'Camera Feed #1',
+        deviceType: 'camera',
+        location: 'Greenhouse B',
+        description: 'Real-time monitoring camera',
+        isActive: false,
+        deviceId: 'DEV-00003',
+        createdAt: DateTime.now().subtract(const Duration(days: 10)),
+        lastSeen: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+    ];
   }
 
   Future<Device?> getDeviceById(int id) async {
