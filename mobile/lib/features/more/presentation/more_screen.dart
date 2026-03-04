@@ -1,18 +1,41 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/di/injector.dart';
 import '../../../app/theme/theme_provider.dart';
 import '../../../app/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import 'package:provider/provider.dart';
+import '../../auth/domain/usecases/get_current_user_use_case.dart';
 
 /// Placeholder "More" screen for additional options and info.
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends StatefulWidget {
   /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
   final bool showAppBar;
-  
+
   const MoreScreen({super.key, this.showAppBar = false});
+
+  @override
+  State<MoreScreen> createState() => _MoreScreenState();
+}
+
+class _MoreScreenState extends State<MoreScreen> {
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final user = await getIt<GetCurrentUserUseCase>()();
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = (user?.role ?? '').toUpperCase() == 'ADMIN';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +91,18 @@ class MoreScreen extends StatelessWidget {
                   },
                 ),
                 const Divider(),
+                if (_isAdmin) ...[
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.admin_panel_settings),
+                    title: const Text('Admin Panel'),
+                    subtitle: const Text('Manage users and all devices'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      context.push(AppRouter.admin);
+                    },
+                  ),
+                ],
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text('About App'),
@@ -115,7 +150,7 @@ class MoreScreen extends StatelessWidget {
     );
     
     // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
-    if (showAppBar) {
+    if (widget.showAppBar) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('More'),
@@ -123,7 +158,7 @@ class MoreScreen extends StatelessWidget {
         body: content,
       );
     }
-    
+
     // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold)
     return content;
   }

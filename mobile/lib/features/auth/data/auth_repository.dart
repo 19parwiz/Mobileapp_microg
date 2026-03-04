@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 import '../../../core/utils/logger.dart';
 import '../../../app/config/app_config.dart';
 import '../domain/auth_model.dart';
@@ -23,7 +24,7 @@ class AuthRepository implements IAuthRepository {
       // Store user data
       await _secureStorage.write(
         key: AppConfig.userKey,
-        value: authModel.toJson().toString(),
+        value: jsonEncode(authModel.toJson()),
       );
       
       AppLogger.i('User logged in successfully');
@@ -42,7 +43,7 @@ class AuthRepository implements IAuthRepository {
       // Store user data
       await _secureStorage.write(
         key: AppConfig.userKey,
-        value: authModel.toJson().toString(),
+        value: jsonEncode(authModel.toJson()),
       );
       
       AppLogger.i('User registered successfully');
@@ -73,6 +74,26 @@ class AuthRepository implements IAuthRepository {
   @override
   Future<String?> getToken() async {
     return await _secureStorage.read(key: AppConfig.tokenKey);
+  }
+
+  @override
+  Future<AuthModel?> getCurrentUser() async {
+    try {
+      final raw = await _secureStorage.read(key: AppConfig.userKey);
+      if (raw == null || raw.isEmpty) {
+        return null;
+      }
+
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return AuthModel.fromJson(decoded);
+      }
+
+      return null;
+    } catch (e) {
+      AppLogger.e('Get current user error', e);
+      return null;
+    }
   }
 }
 
