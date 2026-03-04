@@ -1,11 +1,14 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dio/dio.dart';
 import '../../core/utils/logger.dart';
+import '../network/api_client.dart';
 import '../../features/auth/data/auth_api.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/domain/repositories/i_auth_repository.dart';
 import '../../features/auth/domain/usecases/get_token_use_case.dart';
+import '../../features/auth/domain/usecases/get_current_user_use_case.dart';
 import '../../features/auth/domain/usecases/login_use_case.dart';
 import '../../features/auth/domain/usecases/logout_use_case.dart';
 import '../../features/auth/domain/usecases/register_use_case.dart';
@@ -23,6 +26,7 @@ import '../../features/profile/data/profile_repository.dart';
 import '../../features/ai/data/prediction_repository_impl.dart';
 import '../../features/ai/domain/repositories/i_prediction_repository.dart';
 import '../../features/ai/domain/usecases/generate_prediction_use_case.dart';
+import '../../features/device/data/device_api.dart';
 import '../../features/device/data/device_data_source.dart';
 import '../../features/device/data/device_repository.dart';
 import '../../features/device/domain/repositories/i_device_repository.dart';
@@ -49,12 +53,22 @@ Future<void> setupDependencyInjection() async {
   final httpClient = http.Client();
   getIt.registerSingleton<http.Client>(httpClient);
 
+  // Dio API Client
+  final apiClient = ApiClient(secureStorage: getIt<FlutterSecureStorage>());
+  getIt.registerSingleton<ApiClient>(apiClient);
+  getIt.registerSingleton<Dio>(apiClient.dio);
+
   // Data Sources
   getIt.registerLazySingleton<AuthApi>(
     () => AuthApi(
-      httpClient: getIt<http.Client>(),
+      dio: getIt<Dio>(),
       secureStorage: getIt<FlutterSecureStorage>(),
     ),
+  );
+
+  // Device API - uses Dio with automatic token injection
+  getIt.registerLazySingleton<DeviceApi>(
+    () => DeviceApi(dio: getIt<Dio>()),
   );
 
   // Repositories
@@ -80,8 +94,10 @@ Future<void> setupDependencyInjection() async {
     () => PredictionRepositoryImpl(),
   );
 
-  // Device dependencies (using mock data for now, will replace with API later)
-  getIt.registerLazySingleton<DeviceDataSource>(() => DeviceDataSource());
+  // Device dependencies - now uses real API instead of mock data
+  getIt.registerLazySingleton<DeviceDataSource>(
+    () => DeviceDataSource(deviceApi: getIt<DeviceApi>()),
+  );
 
   getIt.registerLazySingleton<IDeviceRepository>(
     () => DeviceRepository(
@@ -105,6 +121,9 @@ Future<void> setupDependencyInjection() async {
   );
   getIt.registerLazySingleton<GetTokenUseCase>(
     () => GetTokenUseCase(authRepository: getIt<IAuthRepository>()),
+  );
+  getIt.registerLazySingleton<GetCurrentUserUseCase>(
+    () => GetCurrentUserUseCase(authRepository: getIt<IAuthRepository>()),
   );
 
   getIt.registerLazySingleton<GetProfileUseCase>(
