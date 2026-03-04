@@ -2,6 +2,7 @@ package com.aliparwiz.microgreens.device;
 
 import com.aliparwiz.microgreens.auth.User;
 import com.aliparwiz.microgreens.sensor.SensorReading;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -52,11 +53,13 @@ public class Device {
     private LocalDateTime updatedAt = LocalDateTime.now();
     
     // Many devices belong to one user
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User owner;
     
     // One device has many sensor readings
+    @JsonIgnore
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<SensorReading> sensorReadings;
 }

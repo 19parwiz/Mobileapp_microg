@@ -4,13 +4,15 @@ class AppConfig {
   
   // API Configuration
   // TODO: Update with actual backend URL
-  static const String baseUrl = 'http://localhost:8080/api';
+  static const String baseUrl = 'http://localhost:8080/api';   
   static const Duration apiTimeout = Duration(seconds: 30);
   
   // Storage Keys
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
+
   
+
   // MQTT Configuration
   // TODO: Configure MQTT broker URL and credentials
   static const String mqttBroker = 'mqtt://localhost:1883';
