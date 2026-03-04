@@ -2,14 +2,13 @@ package com.aliparwiz.microgreens.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
@@ -26,26 +25,29 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;
 
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
     /**
      * Generate JWT token for authenticated user
      * @param userId User ID
      * @param email User email
      * @param role User role
-     * @return JWT token string
+     * @return JWT token string     
      */
     public String generateToken(Long userId, String email, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-
         return Jwts.builder()
-                .setSubject(String.valueOf(userId))
+                .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("role", role)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS512)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -55,12 +57,11 @@ public class JwtTokenProvider {
      * @return User ID
      */
     public Long getUserIdFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return Long.parseLong(claims.getSubject());
     }
 
@@ -70,12 +71,11 @@ public class JwtTokenProvider {
      * @return User email
      */
     public String getEmailFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.get("email", String.class);
     }
 
@@ -85,12 +85,11 @@ public class JwtTokenProvider {
      * @return User role
      */
     public String getRoleFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.get("role", String.class);
     }
 
@@ -101,11 +100,10 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
+            Jwts.parser()
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(token);
+                    .parseSignedClaims(token);
             return true;
         } catch (io.jsonwebtoken.security.SecurityException e) {
             log.error("Invalid JWT signature: {}", e.getMessage());
@@ -122,8 +120,8 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Get token expiration time
-     * @return JWT expiration time in milliseconds
+     * Get JWT expiration time in milliseconds
+     * @return Expiration time in milliseconds
      */
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
