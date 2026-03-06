@@ -13,6 +13,7 @@ import '../../features/device/presentation/device_detail_screen.dart';
 import '../../features/admin/presentation/admin_panel_screen.dart';
 import '../../core/widgets/main_scaffold.dart';
 import '../../core/widgets/error_page.dart';
+import '../../core/utils/logger.dart';
 import '../di/injector.dart';
 import '../../features/auth/domain/usecases/get_token_use_case.dart';
 
@@ -49,25 +50,70 @@ class AppRouter {
   static const String deviceDetailName = 'deviceDetail';
   static const String adminName = 'admin';
 
+  // List of routes that require authentication
+  static const List<String> _protectedRoutes = [
+    home,
+    profile,
+    editProfile,
+    settings,
+    camera,
+    ai,
+    devices,
+    addDevice,
+    editDevice,
+    deviceDetail,
+    admin,
+  ];
+
+  // List of public (unprotected) routes
+  static const List<String> _publicRoutes = [
+    login,
+    register,
+  ];
+
   // GoRouter instance with defined router
   /// GoRouter instance with routes and error handling
   static final GoRouter router = GoRouter(
-    initialLocation: home,
+    initialLocation: login,
     debugLogDiagnostics: true,
     redirect: (context, state) async {
-      final token = await getIt<GetTokenUseCase>()();
-      final isLoggedIn = token != null && token.isNotEmpty;
-      final isAuthRoute = state.matchedLocation == login || state.matchedLocation == register;
+      try {
+        // Get the current token from secure storage
+        final token = await getIt<GetTokenUseCase>()();
+        final isLoggedIn = token != null && token.isNotEmpty;
+        final currentPath = state.matchedLocation;
 
-      if (!isLoggedIn && !isAuthRoute) {
+        // Check if current route is a public route
+        final isOnPublicRoute = _publicRoutes.contains(currentPath) ||
+            currentPath.startsWith(login) ||
+            currentPath.startsWith(register);
+
+        // SECURITY: If user is NOT logged in
+        if (!isLoggedIn) {
+          // Allow access to public routes (login, register)
+          if (isOnPublicRoute) {
+            return null; // Stay on the route
+          }
+          // Redirect any attempt to access protected routes to login
+          return login;
+        }
+
+        // SECURITY: If user IS logged in
+        if (isLoggedIn) {
+          // Don't allow logged-in users to go back to login/register
+          if (isOnPublicRoute) {
+            return home; // Redirect to home instead
+          }
+          // Allow access to protected routes
+          return null; // Stay on the route
+        }
+
+        return null;
+      } catch (e) {
+        // If there's any error checking token, redirect to login as safeguard
+        AppLogger.e('Router redirect error', e);
         return login;
       }
-
-      if (isLoggedIn && isAuthRoute) {
-        return home;
-      }
-
-      return null;
     },
     routes: [  
       GoRoute(

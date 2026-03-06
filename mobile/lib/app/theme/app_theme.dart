@@ -198,17 +198,17 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       
-      // Input Decoration Theme
+      // Input Decoration Theme - Dark mode friendly
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colorScheme.surface,
+        fillColor: Color(0xFF2C2C2C), // Dark gray for input background
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: Color(0xFF444444)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: Color(0xFF444444)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
@@ -226,6 +226,9 @@ class AppTheme {
           horizontal: AppSizes.paddingM,
           vertical: AppSizes.paddingM,
         ),
+        // Light text color for dark mode
+        labelStyle: _textTheme(Color(0xFFE0E0E0)).labelLarge,
+        hintStyle: _textTheme(Color(0xFF999999)).bodyMedium,
       ),
       
       // Button Themes

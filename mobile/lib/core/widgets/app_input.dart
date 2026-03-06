@@ -100,9 +100,17 @@ class _AppInputState extends State<AppInput> {
           inputFormatters: widget.inputFormatters,
           focusNode: widget.focusNode,
           textInputAction: widget.textInputAction,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(color: AppColors.textHint),
+            hintStyle: const TextStyle(
+              color: Colors.black38,
+              fontSize: 15,
+            ),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, color: AppColors.textSecondary)
                 : null,

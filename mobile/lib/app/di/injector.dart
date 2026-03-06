@@ -33,6 +33,7 @@ import '../../features/device/domain/repositories/i_device_repository.dart';
 import '../../features/device/domain/usecases/device_use_cases.dart';
 import '../../features/device/presentation/device_provider.dart';
 import '../../features/home/presentation/home_provider.dart';
+import '../../features/my_plants/data/plant_api.dart';
 import '../../features/my_plants/data/plant_data_source.dart';
 import '../../features/my_plants/data/plant_repository_impl.dart';
 import '../../features/my_plants/domain/repositories/i_plant_repository.dart';
@@ -96,7 +97,7 @@ Future<void> setupDependencyInjection() async {
 
   // Device dependencies - now uses real API instead of mock data
   getIt.registerLazySingleton<DeviceDataSource>(
-    () => DeviceDataSource(deviceApi: getIt<DeviceApi>()),
+    () => DeviceDataSource(),
   );
 
   getIt.registerLazySingleton<IDeviceRepository>(
@@ -185,8 +186,15 @@ Future<void> setupDependencyInjection() async {
     ),
   );
 
-  // My Plants feature - Data, repository, use cases and provider (mock/local)
-  getIt.registerLazySingleton<PlantDataSource>(() => PlantDataSource());
+  // My Plants feature - Data, repository, use cases and provider (now with real API)
+  getIt.registerLazySingleton<PlantApi>(
+    () => PlantApi(dio: getIt<Dio>()),
+  );
+  
+  getIt.registerLazySingleton<PlantDataSource>(
+    () => PlantDataSource(plantApi: getIt<PlantApi>()),
+  );
+  
   getIt.registerLazySingleton<IPlantRepository>(
     () => PlantRepositoryImpl(dataSource: getIt<PlantDataSource>()),
   );

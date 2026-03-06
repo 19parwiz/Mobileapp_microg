@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        context.go(AppRouter.home); // Changed: register route removed
+                        context.go(AppRouter.register);
                       },
                       child: const Text(AppStrings.signUp),
                     ),

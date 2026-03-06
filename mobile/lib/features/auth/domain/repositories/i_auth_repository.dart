@@ -10,6 +10,7 @@ abstract class IAuthRepository {
 
   Future<bool> isLoggedIn();
   Future<String?> getToken();
+  Future<AuthModel?> getCurrentUser();
 }
 
 

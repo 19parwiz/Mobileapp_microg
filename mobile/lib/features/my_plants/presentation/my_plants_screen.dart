@@ -17,11 +17,18 @@ import '../../my_plants/data/plant_repository_impl.dart';
 import '../../my_plants/data/plant_data_source.dart';
 
 /// My Plants screen for managing microgreen plants
-class MyPlantsScreen extends StatelessWidget {
+class MyPlantsScreen extends StatefulWidget {
   /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
   final bool showAppBar;
   
   const MyPlantsScreen({super.key, this.showAppBar = false});
+
+  @override
+  State<MyPlantsScreen> createState() => _MyPlantsScreenState();
+}
+
+class _MyPlantsScreenState extends State<MyPlantsScreen> {
+  bool _hasInitialized = false;
 
   Future<void> _showAddPlantDialog(BuildContext context, PlantProvider provider) async {
     final result = await showDialog<Plant>(
@@ -250,8 +257,9 @@ class MyPlantsScreen extends StatelessWidget {
     // Use the DI-registered PlantProvider (do NOT recreate or dispose it here)
     final provider = context.watch<PlantProvider>();
 
-    // Trigger initial fetch once after first build when necessary
-    if (!provider.isLoading && !provider.hasError && provider.plants.isEmpty) {
+    // Trigger initial fetch ONLY ONCE on first build
+    if (!_hasInitialized) {
+      _hasInitialized = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         provider.fetchPlants();
       });
@@ -290,7 +298,7 @@ class MyPlantsScreen extends StatelessWidget {
     }
 
     // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
-    if (showAppBar) {
+    if (widget.showAppBar) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('My Plants'),

@@ -335,9 +335,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               });
             });
 
-            return SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSizes.paddingL),
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSizes.paddingL),
+              child: SafeArea(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -430,89 +431,82 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: AppSizes.spacingL),
                     
-                    // Dynamic Sensor Cards List with staggered animations
-                    SizedBox(
-                      height: provider.sensorData.length * 100.0, // Approximate height
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: provider.sensorData.length,
-                        itemBuilder: (context, index) {
-                          final sensor = provider.sensorData[index];
-                          debugPrint('Building sensor card: ${sensor.sensorType} = ${sensor.value}');
-                          
-                          // Determine icon and color based on sensor type
-                          IconData icon;
-                          Color iconColor;
-                          String subtitle;
-                          
-                          switch (sensor.sensorType) {
-                            case 'temperature':
-                              icon = Icons.thermostat;
-                              iconColor = AppColors.warning;
-                              subtitle = 'Optimal range: 20-25°C';
-                              break;
-                            case 'humidity':
-                              icon = Icons.water_drop;
-                              iconColor = AppColors.primary;
-                              subtitle = 'Optimal range: 60-70%';
-                              break;
-                            case 'light':
-                              icon = Icons.wb_sunny;
-                              iconColor = AppColors.accent;
-                              subtitle = 'Optimal range: 500-1000 lux';
-                              break;
-                            default:
-                              icon = Icons.sensors;
-                              iconColor = AppColors.primary;
-                              subtitle = 'Sensor reading';
-                          }
-                          
-                          // Staggered animation: each card starts 0.1s after the previous
-                          final delay = index * 0.1;
-                          final animation = Tween<double>(
-                            begin: 0.0,
-                            end: 1.0,
-                          ).animate(
-                            CurvedAnimation(
-                              parent: _animationController,
-                              curve: Interval(
-                                delay.clamp(0.0, 0.4),
-                                (delay + 0.4).clamp(0.0, 1.0),
-                                curve: Curves.easeOut,
-                              ),
-                            ),
-                          );
-                          
-                          return _AnimatedSensorCard(
+                    // Dynamic Sensor Cards List - Flow naturally without fixed height
+                    ...provider.sensorData.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final sensor = entry.value;
+                      debugPrint('Building sensor card: ${sensor.sensorType} = ${sensor.value}');
+                      
+                      // Determine icon and color based on sensor type
+                      IconData icon;
+                      Color iconColor;
+                      String subtitle;
+                      
+                      switch (sensor.sensorType) {
+                        case 'temperature':
+                          icon = Icons.thermostat;
+                          iconColor = AppColors.warning;
+                          subtitle = 'Optimal range: 20-25°C';
+                          break;
+                        case 'humidity':
+                          icon = Icons.water_drop;
+                          iconColor = AppColors.primary;
+                          subtitle = 'Optimal range: 60-70%';
+                          break;
+                        case 'light':
+                          icon = Icons.wb_sunny;
+                          iconColor = AppColors.accent;
+                          subtitle = 'Optimal range: 500-1000 lux';
+                          break;
+                        default:
+                          icon = Icons.sensors;
+                          iconColor = AppColors.primary;
+                          subtitle = 'Sensor reading';
+                      }
+                      
+                      // Staggered animation: each card starts 0.1s after the previous
+                      final delay = index * 0.1;
+                      final animation = Tween<double>(
+                        begin: 0.0,
+                        end: 1.0,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: _animationController,
+                          curve: Interval(
+                            delay.clamp(0.0, 0.4),
+                            (delay + 0.4).clamp(0.0, 1.0),
+                            curve: Curves.easeOut,
+                          ),
+                        ),
+                      );
+                      
+                      return Column(
+                        children: [
+                          _AnimatedSensorCard(
                             animation: animation,
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: index < provider.sensorData.length - 1 
-                                    ? AppSizes.spacingM 
-                                    : 0,
-                              ),
-                              child: SensorCard(
-                                title: sensor.sensorType[0].toUpperCase() + 
-                                       sensor.sensorType.substring(1),
-                                value: sensor.sensorType == 'light' 
-                                    ? sensor.value.toStringAsFixed(0)
-                                    : sensor.value.toStringAsFixed(1),
-                                unit: sensor.unit,
-                                icon: icon,
-                                iconColor: iconColor,
-                                subtitle: subtitle,
-                                showTrend: true,
-                                trend: sensor.trend,
-                                onTap: () {
-                                  debugPrint('${sensor.sensorType} card tapped: ${sensor.value} ${sensor.unit}');
-                                },
-                              ),
+                            child: SensorCard(
+                              title: sensor.sensorType[0].toUpperCase() + 
+                                     sensor.sensorType.substring(1),
+                              value: sensor.sensorType == 'light' 
+                                  ? sensor.value.toStringAsFixed(0)
+                                  : sensor.value.toStringAsFixed(1),
+                              unit: sensor.unit,
+                              icon: icon,
+                              iconColor: iconColor,
+                              subtitle: subtitle,
+                              showTrend: true,
+                              trend: sensor.trend,
+                              onTap: () {
+                                debugPrint('${sensor.sensorType} card tapped: ${sensor.value} ${sensor.unit}');
+                              },
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                          SizedBox(height: index < provider.sensorData.length - 1 
+                              ? AppSizes.spacingM 
+                              : 0),
+                        ],
+                      );
+                    }).toList(),
                     const SizedBox(height: AppSizes.spacingXL),
                     
                     // Chart Section - Dynamic
@@ -617,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
         );
-    
+
     // If showAppBar is true (standalone route), wrap in Scaffold with AppBar and PopScope
     if (widget.showAppBar) {
       return PopScope(

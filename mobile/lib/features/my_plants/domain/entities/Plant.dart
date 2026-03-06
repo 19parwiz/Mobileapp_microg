@@ -51,14 +51,12 @@ class Plant {
     return {
       if (id != null) 'id': id,
       'name': name,
-      'type': type,
+      'plantType': type, // Backend uses 'plantType' field name
       if (description != null) 'description': description,
-      if (plantingDate != null) 'plantingDate': plantingDate!.toIso8601String(),
+      if (plantingDate != null) 'plantingDate': plantingDate!.toIso8601String().split('T')[0], // Send as date only (YYYY-MM-DD)
       'growthStage': growthStage,
       if (healthStatus != null) 'healthStatus': healthStatus,
       if (notes != null) 'notes': notes,
-      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
-      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
     };
   }
 

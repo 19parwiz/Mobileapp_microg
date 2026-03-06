@@ -152,7 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        context.go(AppRouter.home); // Changed: login route removed
+                        context.go(AppRouter.login);
                       },
                       child: const Text(AppStrings.signIn),
                     ),

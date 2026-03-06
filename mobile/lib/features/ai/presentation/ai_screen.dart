@@ -16,55 +16,60 @@ class AIScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget content = SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.eco,
-                size: 80,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: AppSizes.spacingL),
-              Text(
-                'AI Predictions',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSizes.paddingL),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: AppSizes.spacingXL * 2),
+                Icon(
+                  Icons.eco,
+                  size: 80,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(height: AppSizes.spacingL),
+                Text(
+                  'AI Predictions',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                ),
+                const SizedBox(height: AppSizes.spacingM),
+                Text(
+                  'AI-powered predictions for microgreens growth',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSizes.spacingXL),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    debugPrint('AI screen action button pressed');
+                    final useCase = getIt<GeneratePredictionUseCase>();
+                    final result = await useCase();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(result.message)),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.eco),
+                  label: const Text('Generate Predictions'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: AppColors.textOnPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.paddingL,
+                      vertical: AppSizes.paddingM,
                     ),
-              ),
-              const SizedBox(height: AppSizes.spacingM),
-              Text(
-                'AI-powered predictions for microgreens growth',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSizes.spacingXL),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  debugPrint('AI screen action button pressed');
-                  final useCase = getIt<GeneratePredictionUseCase>();
-                  final result = await useCase();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(result.message)),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.eco),
-                label: const Text('Generate Predictions'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: AppColors.textOnPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingL,
-                    vertical: AppSizes.paddingM,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSizes.spacingXL * 2),
+              ],
+            ),
           ),
         ),
     );
