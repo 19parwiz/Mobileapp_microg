@@ -35,11 +35,11 @@ public class SensorService {
     }
     
     public List<SensorReading> getReadingsByDeviceId(String deviceId) {
-        return sensorRepository.findByDeviceId(deviceId);
+        return sensorRepository.findByDevice_DeviceId(deviceId);
     }
     
     public List<SensorReading> getReadingsByDeviceIdAndSensorType(String deviceId, String sensorType) {
-        return sensorRepository.findByDeviceIdAndSensorType(deviceId, sensorType);
+        return sensorRepository.findByDevice_DeviceIdAndSensorType(deviceId, sensorType);
     }
     
     public List<SensorReading> getLatestReadingsByDeviceId(String deviceId) {

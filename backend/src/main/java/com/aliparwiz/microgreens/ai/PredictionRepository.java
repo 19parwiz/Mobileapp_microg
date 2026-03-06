@@ -10,13 +10,13 @@ import java.util.Optional;
 
 @Repository
 public interface PredictionRepository extends JpaRepository<Prediction, Long> {
-    List<Prediction> findByDeviceId(String deviceId);
-    List<Prediction> findByDeviceIdAndPredictionType(String deviceId, String predictionType);
+    List<Prediction> findByDevice_DeviceId(String deviceId);
+    List<Prediction> findByDevice_DeviceIdAndPredictionType(String deviceId, String predictionType);
     
-    @Query("SELECT p FROM Prediction p WHERE p.deviceId = :deviceId ORDER BY p.timestamp DESC")
+    @Query("SELECT p FROM Prediction p WHERE p.device.deviceId = :deviceId ORDER BY p.timestamp DESC")
     List<Prediction> findLatestByDeviceId(@Param("deviceId") String deviceId);
     
-    @Query("SELECT p FROM Prediction p WHERE p.deviceId = :deviceId AND p.predictionType = :predictionType ORDER BY p.timestamp DESC")
+    @Query("SELECT p FROM Prediction p WHERE p.device.deviceId = :deviceId AND p.predictionType = :predictionType ORDER BY p.timestamp DESC")
     Optional<Prediction> findLatestByDeviceIdAndPredictionType(
             @Param("deviceId") String deviceId,
             @Param("predictionType") String predictionType);

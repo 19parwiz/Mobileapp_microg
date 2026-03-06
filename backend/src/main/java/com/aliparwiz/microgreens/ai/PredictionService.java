@@ -28,11 +28,11 @@ public class PredictionService {
     // TODO: Add validation for prediction data format
     
     public List<Prediction> getPredictionsByDeviceId(String deviceId) {
-        return predictionRepository.findByDeviceId(deviceId);
+        return predictionRepository.findByDevice_DeviceId(deviceId);
     }
     
     public List<Prediction> getPredictionsByDeviceIdAndType(String deviceId, String predictionType) {
-        return predictionRepository.findByDeviceIdAndPredictionType(deviceId, predictionType);
+        return predictionRepository.findByDevice_DeviceIdAndPredictionType(deviceId, predictionType);
     }
     
     public List<Prediction> getLatestPredictionsByDeviceId(String deviceId) {
