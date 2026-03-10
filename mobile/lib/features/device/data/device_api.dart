@@ -47,6 +47,25 @@ class DeviceApi {
     }
   }
 
+  Future<Device> getDeviceByDeviceId(String deviceId) async {
+    try {
+      final response = await _dio.get('/devices/device-id/$deviceId');
+
+      if (response.statusCode == 200) {
+        return Device.fromJson(response.data);
+      } else {
+        throw Exception('Failed to load device: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      final errorMessage = _extractErrorMessage(e);
+      AppLogger.e('DeviceApi.getDeviceByDeviceId DioException', errorMessage);
+      throw Exception(errorMessage);
+    } catch (e) {
+      AppLogger.e('DeviceApi.getDeviceByDeviceId error', e);
+      rethrow;
+    }
+  }
+
   Future<Device> createDevice(Device device) async {
     try {
       final response = await _dio.post(

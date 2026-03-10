@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
-/// Sensor data model for temperature, humidity, and light readings
+/// Legacy sensor model used by mock/random dashboard flow.
 class SensorData extends Equatable {
-  final String sensorType; // 'temperature', 'humidity', 'light'
+  final String sensorType;
   final double value;
   final String unit;
   final DateTime timestamp;
@@ -18,28 +18,6 @@ class SensorData extends Equatable {
 
   @override
   List<Object?> get props => [sensorType, value, unit, timestamp, trend];
-
-  SensorData copyWith({
-    String? sensorType,
-    double? value,
-    String? unit,
-    DateTime? timestamp,
-    TrendDirection? trend,
-  }) {
-    return SensorData(
-      sensorType: sensorType ?? this.sensorType,
-      value: value ?? this.value,
-      unit: unit ?? this.unit,
-      timestamp: timestamp ?? this.timestamp,
-      trend: trend ?? this.trend,
-    );
-  }
 }
 
-/// Trend direction enum
-enum TrendDirection {
-  up,
-  down,
-  stable,
-}
-
+enum TrendDirection { up, down, stable }

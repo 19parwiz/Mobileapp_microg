@@ -1,88 +1,116 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../domain/sensor_data.dart';
-import '../domain/usecases/get_sensor_data_use_case.dart';
+import '../../../core/utils/logger.dart';
+import '../domain/models/sensor_data.dart';
+import '../domain/usecases/get_real_sensor_data_use_case.dart';
 
-/// Provider for managing home dashboard state
+/// Provider for managing home dashboard state with live sensor data
+/// Polls university server every 5 seconds for real-time updates
 class HomeProvider extends ChangeNotifier {
-  final GetSensorDataUseCase _getSensorDataUseCase;
-  Timer? _updateTimer;
-  
-  List<SensorData> _sensorData = [];
-  List<SensorData> _chartData = [];
+  final GetRealSensorDataUseCase _getRealSensorDataUseCase;
+  Timer? _pollingTimer;
+
+  // State
+  late SensorData _sensorData;
   bool _isLoading = false;
   String? _errorMessage;
+  DateTime? _lastUpdated;
 
-  List<SensorData> get sensorData => _sensorData;
-  List<SensorData> get chartData => _chartData;
+  // Getters
+  SensorData get sensorData => _sensorData;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
+  DateTime? get lastUpdated => _lastUpdated;
 
-  HomeProvider({required GetSensorDataUseCase getSensorDataUseCase})
-      : _getSensorDataUseCase = getSensorDataUseCase {
-    _initializeData();
-    // Auto-update disabled for now - will be enabled when real sensors are connected
-    // Update frequency will be hourly/daily based on real sensor requirements
-    // _startAutoUpdate();
+  // Polling interval (5 seconds)
+  static const Duration _pollingInterval = Duration(seconds: 5);
+
+  HomeProvider({required GetRealSensorDataUseCase getRealSensorDataUseCase})
+      : _getRealSensorDataUseCase = getRealSensorDataUseCase {
+    // Initialize with empty data
+    _sensorData = _createEmptySensorData();
+    // Load initial data
+    loadSensorData();
+    // Start polling
+    _startPolling();
   }
 
-  /// Initialize sensor data
-  void _initializeData() {
+  /// Create empty sensor data for initial state
+  SensorData _createEmptySensorData() => SensorData(
+        airTemperature: 0,
+        airHumidity: 0,
+        co2: 0,
+        ec: 0,
+        tds: 0,
+        phLevel: 0,
+        lightLevel: 0,
+        turbidity: 0,
+        waterTemperature: 0,
+        soil1: 0,
+        soil2: 0,
+        soil3: 0,
+        soil4: 0,
+        soil5: 0,
+        temperatureData: [],
+        humidityData: [],
+        co2Data: [],
+        ecData: [],
+        tdsData: [],
+        turbidityData: [],
+        historyDates: [],
+      );
+
+  /// Load sensor data from university server (initial load)
+  Future<void> loadSensorData() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
-    
+
     try {
-      final result = _getSensorDataUseCase(refresh: true, hours: 24);
-      _sensorData = result.sensorData;
-      _chartData = result.chartData;
-      _errorMessage = null;
+      _sensorData = await _getRealSensorDataUseCase();
+      _lastUpdated = DateTime.now();
+      AppLogger.i('Sensor data loaded: ${_sensorData.airTemperature}°C');
     } catch (e) {
-      _errorMessage = 'Failed to load sensor data: $e';
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      AppLogger.e('HomeProvider.loadSensorData error', e);
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Start automatic data updates (disabled for now - will be hourly/daily when real sensors are connected)
-  void _startAutoUpdate() {
-    // Disabled: Updates every 5 seconds was too frequent
-    // When real sensors are connected, update hourly or daily
-    // _updateTimer = Timer.periodic(const Duration(hours: 1), (timer) {
-    //   updateSensorData();
-    // });
+  /// Start polling university server every 5 seconds
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(_pollingInterval, (_) {
+      _updateSensorData();
+    });
+    AppLogger.i('Sensor polling started (5 second interval)');
   }
 
-  /// Update sensor data with new random values
-  void updateSensorData() {
-    debugPrint('Updating sensor data...');
+  /// Update sensor data from university server (polling)
+  Future<void> _updateSensorData() async {
     try {
+      _sensorData = await _getRealSensorDataUseCase();
+      _lastUpdated = DateTime.now();
       _errorMessage = null;
-      final result = _getSensorDataUseCase(refresh: true, hours: 24);
-      _sensorData = result.sensorData;
-      _chartData = result.chartData;
-      debugPrint('Sensor data updated: ${_sensorData.length} sensors, ${_chartData.length} chart points');
+      notifyListeners();
     } catch (e) {
-      _errorMessage = 'Failed to update sensor data: $e';
-      debugPrint('Error updating sensor data: $e');
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      AppLogger.e('HomeProvider._updateSensorData polling error', e);
+      notifyListeners();
     }
-    notifyListeners();
   }
 
-  /// Get sensor data by type
-  SensorData? getSensorByType(String type) {
-    try {
-      return _sensorData.firstWhere((data) => data.sensorType == type);
-    } catch (e) {
-      return null;
-    }
+  /// Manual refresh (user pulls down to refresh)
+  Future<void> refreshSensorData() async {
+    await loadSensorData();
   }
 
   @override
   void dispose() {
-    _updateTimer?.cancel();
+    _pollingTimer?.cancel();
+    AppLogger.i('Sensor polling stopped');
     super.dispose();
   }
 }

@@ -1,686 +1,352 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
-import '../../../core/widgets/sensor_card.dart';
-import '../../../core/widgets/sensor_card_skeleton.dart';
-import '../../../core/widgets/custom_button.dart';
-import '../../../core/widgets/sensor_chart.dart';
-import '../../../app/router/app_router.dart';
-import 'home_provider.dart';
+import './home_provider.dart';
+import 'widgets/sensor_card.dart';
 
 class HomeScreen extends StatefulWidget {
-  /// Whether to show AppBar (for standalone routes) or not (for MainScaffold tabs)
   final bool showAppBar;
-  
+
   const HomeScreen({super.key, this.showAppBar = false});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late AnimationController _updateAnimationController;
-  late Animation<double> _chartScaleAnimation;
-  late Animation<double> _chartFadeAnimation;
-
+class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // Initialize animation controllers
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    
-    _updateAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    
-    // Chart animations - Scale + Fade
-    _chartScaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
-    ));
-    
-    _chartFadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
-    ));
-    
-    // Initialize provider if not already initialized
+    // Load sensor data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!context.read<HomeProvider>().isLoading) {
-        context.read<HomeProvider>().updateSensorData();
-      }
-      // Start animations after data is loaded
-      _animationController.forward();
+      context.read<HomeProvider>().loadSensorData();
     });
   }
 
   @override
-  void dispose() {
-    _animationController.dispose();
-    _updateAnimationController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('IOT Dashboard'),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              foregroundColor: AppColors.textPrimary,
+              actions: [
+                Consumer<HomeProvider>(
+                  builder: (context, provider, child) {
+                    return IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: provider.isLoading
+                          ? null
+                          : () => provider.refreshSensorData(),
+                    );
+                  },
+                ),
+              ],
+            )
+          : null,
+      body: Consumer<HomeProvider>(
+        builder: (context, provider, child) {
+          final isInitialLoad = provider.isLoading &&
+              provider.sensorData.airTemperature == 0;
+
+          // Loading state
+          if (isInitialLoad) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          // Data loaded
+          return RefreshIndicator(
+            onRefresh: () => provider.refreshSensorData(),
+            child: ListView(
+              padding: const EdgeInsets.all(AppSizes.paddingL),
+              children: [
+                // Hero status card
+                Container(
+                  padding: const EdgeInsets.all(AppSizes.paddingL),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusXL),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primary,
+                        AppColors.secondaryDark,
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.26),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSizes.paddingM),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(AppSizes.radiusL),
+                        ),
+                        child: const Icon(
+                          Icons.hub_rounded,
+                          color: Colors.white,
+                          size: AppSizes.iconL,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.spacingM),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Live Growing Room',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: AppSizes.spacingXS),
+                            Text(
+                              provider.lastUpdated != null
+                                  ? 'Updated ${_formatTime(provider.lastUpdated!)}'
+                                  : 'Waiting for sensor update',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.88),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppSizes.spacingL),
+
+                Text(
+                  'Environment Metrics',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+
+                const SizedBox(height: AppSizes.spacingM),
+
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isTablet = constraints.maxWidth >= AppSizes.mobileBreakpoint;
+                    return GridView.count(
+                      crossAxisCount: isTablet ? 3 : 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: AppSizes.spacingM,
+                      crossAxisSpacing: AppSizes.spacingM,
+                      childAspectRatio: isTablet ? 1.25 : 1.0,
+                      children: [
+                        SensorCard(
+                          label: 'Temperature',
+                          value: provider.sensorData.airTemperature,
+                          unit: '°C',
+                          icon: Icons.thermostat,
+                          backgroundColor: const Color(0xFF1F8A70),
+                        ),
+                        SensorCard(
+                          label: 'Humidity',
+                          value: provider.sensorData.airHumidity,
+                          unit: '%',
+                          icon: Icons.water_drop,
+                          backgroundColor: const Color(0xFF2979FF),
+                        ),
+                        SensorCard(
+                          label: 'CO2',
+                          value: provider.sensorData.co2,
+                          unit: 'ppm',
+                          icon: Icons.co2,
+                          backgroundColor: const Color(0xFFEF6C00),
+                          fractionDigits: 0,
+                        ),
+                        SensorCard(
+                          label: 'pH',
+                          value: provider.sensorData.phLevel,
+                          unit: '',
+                          icon: Icons.science_outlined,
+                          backgroundColor: const Color(0xFF7B1FA2),
+                          fractionDigits: 2,
+                        ),
+                        SensorCard(
+                          label: 'EC',
+                          value: provider.sensorData.ec,
+                          unit: 'mS/cm',
+                          icon: Icons.bolt,
+                          backgroundColor: const Color(0xFF1565C0),
+                          fractionDigits: 3,
+                        ),
+                        SensorCard(
+                          label: 'TDS',
+                          value: provider.sensorData.tds,
+                          unit: 'ppm',
+                          icon: Icons.opacity,
+                          backgroundColor: const Color(0xFF455A64),
+                          fractionDigits: 0,
+                        ),
+                        SensorCard(
+                          label: 'Light',
+                          value: provider.sensorData.lightLevel,
+                          unit: 'lux',
+                          icon: Icons.wb_sunny,
+                          backgroundColor: const Color(0xFFF9A825),
+                          textColor: Colors.black87,
+                          iconColor: Colors.black87,
+                          fractionDigits: 0,
+                        ),
+                        SensorCard(
+                          label: 'Turbidity',
+                          value: provider.sensorData.turbidity,
+                          unit: 'NTU',
+                          icon: Icons.grain,
+                          backgroundColor: const Color(0xFF6D4C41),
+                          fractionDigits: 0,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+
+                // Soil Moisture Section
+                Container(
+                  margin: const EdgeInsets.only(top: AppSizes.spacingL),
+                  padding: const EdgeInsets.all(AppSizes.paddingL),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusXL),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Substrate Moisture',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.spacingM),
+                      Wrap(
+                        spacing: AppSizes.spacingS,
+                        runSpacing: AppSizes.spacingS,
+                        children: [
+                          _buildSoilChip(context, 'Shelf 1', provider.sensorData.soil1),
+                          _buildSoilChip(context, 'Shelf 2', provider.sensorData.soil2),
+                          _buildSoilChip(context, 'Shelf 3', provider.sensorData.soil3),
+                          _buildSoilChip(context, 'Shelf 4', provider.sensorData.soil4),
+                          _buildSoilChip(context, 'Shelf 5', provider.sensorData.soil5),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (provider.hasError)
+                  Container(
+                    margin: const EdgeInsets.only(top: AppSizes.spacingM),
+                    padding: const EdgeInsets.all(AppSizes.paddingM),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: AppColors.textPrimary.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: AppSizes.spacingS),
+                        Expanded(
+                          child: Text(
+                            'Temporary network issue. Showing latest available values.',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: AppSizes.spacingXL),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
-  /// Handle back button press with confirmation dialog
-  Future<void> _handleBackButton() async {
-    debugPrint('Back button pressed on HomeDashboard');
-    if (!mounted) return;
-    
-    final shouldExit = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Exit HomeDashboard?'),
-        content: const Text('Do you want to exit the HomeDashboard?'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+  Widget _buildSoilChip(BuildContext context, String label, double value) {
+    final active = value > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingM,
+        vertical: AppSizes.paddingS,
+      ),
+      decoration: BoxDecoration(
+        color: active
+            ? AppColors.soilColor.withValues(alpha: 0.14)
+            : AppColors.backgroundLight,
+        borderRadius: BorderRadius.circular(AppSizes.radiusXL),
+        border: Border.all(
+          color: active
+              ? AppColors.soilColor.withValues(alpha: 0.45)
+              : AppColors.border,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              debugPrint('User chose to stay on HomeDashboard');
-              Navigator.of(context).pop(false);
-            },
-            child: const Text('No'),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              debugPrint('User chose to exit HomeDashboard');
-              Navigator.of(context).pop(true);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: const Text('Yes'),
+          const SizedBox(width: AppSizes.spacingS),
+          Text(
+            value.toStringAsFixed(1),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
     );
-
-    if (shouldExit == true && mounted) {
-      // Exit the app
-      Navigator.of(context).pop();
-    }
   }
 
-  void _handleCameraPress(BuildContext context) {
-    debugPrint('Camera button pressed - navigating to camera screen');
-    context.push(AppRouter.camera).then((_) {
-      debugPrint('Returned from camera screen');
-    });
+  /// Check if any soil sensors have data
+  bool _hasSoilSensors(HomeProvider provider) {
+    return provider.sensorData.soil1 > 0 ||
+        provider.sensorData.soil2 > 0 ||
+        provider.sensorData.soil3 > 0 ||
+        provider.sensorData.soil4 > 0 ||
+        provider.sensorData.soil5 > 0;
   }
 
-  void _handleAIPress(BuildContext context) {
-    debugPrint('AI button pressed - navigating to AI screen');
-    context.push(AppRouter.ai).then((_) {
-      debugPrint('Returned from AI screen');
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Widget content = Consumer<HomeProvider>(
-          builder: (context, provider, child) {
-            // Loading state with skeletons
-            if (provider.isLoading) {
-              return SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSizes.paddingL),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Welcome skeleton
-                      Card(
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.cardGradient,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusL),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.spacingL),
-                      Text(
-                        'Sensor Readings',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: AppSizes.spacingM),
-                      // Sensor card skeletons
-                      const SensorCardSkeleton(),
-                      const SizedBox(height: AppSizes.spacingM),
-                      const SensorCardSkeleton(),
-                      const SizedBox(height: AppSizes.spacingM),
-                      const SensorCardSkeleton(),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Error state
-            if (provider.hasError) {
-              return SafeArea(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.paddingXL),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(height: AppSizes.spacingL),
-                        Text(
-                          'Error Loading Data',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.error,
-                              ),
-                        ),
-                        const SizedBox(height: AppSizes.spacingS),
-                        Text(
-                          provider.errorMessage ?? 'An unknown error occurred',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppSizes.spacingL),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              provider.updateSensorData();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text(
-                              'Retry',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              foregroundColor: AppColors.textOnPrimary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSizes.paddingL,
-                                vertical: AppSizes.paddingL,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                              ),
-                              minimumSize: const Size(0, AppSizes.buttonHeightL),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            // Empty state
-            if (provider.sensorData.isEmpty) {
-              return SafeArea(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.paddingXL),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.sensors_off,
-                          size: 64,
-                          color: AppColors.textSecondary.withOpacity(0.5),
-                        ),
-                        const SizedBox(height: AppSizes.spacingL),
-                        Text(
-                          'No Sensor Data',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textSecondary,
-                              ),
-                        ),
-                        const SizedBox(height: AppSizes.spacingS),
-                        Text(
-                          'Sensor data will appear here when available',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppSizes.spacingL),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              provider.updateSensorData();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text(
-                              'Refresh',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              foregroundColor: AppColors.textOnPrimary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSizes.paddingL,
-                                vertical: AppSizes.paddingL,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                              ),
-                              minimumSize: const Size(0, AppSizes.buttonHeightL),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            // Animate on data updates
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _updateAnimationController.forward(from: 0).then((_) {
-                _updateAnimationController.reverse();
-              });
-            });
-
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSizes.paddingL),
-              child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Welcome header with plant icon and gradient - with fade-in animation
-                    FadeTransition(
-                      opacity: _chartFadeAnimation,
-                      child: ScaleTransition(
-                        scale: _chartScaleAnimation,
-                        child: Card(
-                          elevation: 4,
-                          shadowColor: AppColors.primary.withOpacity(0.2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: AppColors.cardGradient,
-                              borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                            ),
-                            child: Padding(
-                          padding: const EdgeInsets.all(AppSizes.paddingL),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(AppSizes.paddingM),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      AppColors.primary.withOpacity(0.2),
-                                      AppColors.primary.withOpacity(0.1),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(AppSizes.radiusM),
-                                  border: Border.all(
-                                    color: AppColors.primary.withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.eco,
-                                  color: AppColors.primary,
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.spacingM),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      AppStrings.welcome,
-                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 24,
-                                            color: AppColors.textPrimary,
-                                            letterSpacing: 0.2,
-                                          ),
-                                    ),
-                                    const SizedBox(height: AppSizes.spacingS),
-                                    Text(
-                                      'Microgreens Management Dashboard',
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            color: AppColors.textSecondary,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 14,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                        ),
-                      ),
-                    const SizedBox(height: AppSizes.spacingXL),
-                    
-                    // Sensor Cards Section - Using ListView for dynamic cards
-                    Text(
-                      'Sensor Readings',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                            letterSpacing: 0.2,
-                          ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingL),
-                    
-                    // Dynamic Sensor Cards List - Flow naturally without fixed height
-                    ...provider.sensorData.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final sensor = entry.value;
-                      debugPrint('Building sensor card: ${sensor.sensorType} = ${sensor.value}');
-                      
-                      // Determine icon and color based on sensor type
-                      IconData icon;
-                      Color iconColor;
-                      String subtitle;
-                      
-                      switch (sensor.sensorType) {
-                        case 'temperature':
-                          icon = Icons.thermostat;
-                          iconColor = AppColors.warning;
-                          subtitle = 'Optimal range: 20-25°C';
-                          break;
-                        case 'humidity':
-                          icon = Icons.water_drop;
-                          iconColor = AppColors.primary;
-                          subtitle = 'Optimal range: 60-70%';
-                          break;
-                        case 'light':
-                          icon = Icons.wb_sunny;
-                          iconColor = AppColors.accent;
-                          subtitle = 'Optimal range: 500-1000 lux';
-                          break;
-                        default:
-                          icon = Icons.sensors;
-                          iconColor = AppColors.primary;
-                          subtitle = 'Sensor reading';
-                      }
-                      
-                      // Staggered animation: each card starts 0.1s after the previous
-                      final delay = index * 0.1;
-                      final animation = Tween<double>(
-                        begin: 0.0,
-                        end: 1.0,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: _animationController,
-                          curve: Interval(
-                            delay.clamp(0.0, 0.4),
-                            (delay + 0.4).clamp(0.0, 1.0),
-                            curve: Curves.easeOut,
-                          ),
-                        ),
-                      );
-                      
-                      return Column(
-                        children: [
-                          _AnimatedSensorCard(
-                            animation: animation,
-                            child: SensorCard(
-                              title: sensor.sensorType[0].toUpperCase() + 
-                                     sensor.sensorType.substring(1),
-                              value: sensor.sensorType == 'light' 
-                                  ? sensor.value.toStringAsFixed(0)
-                                  : sensor.value.toStringAsFixed(1),
-                              unit: sensor.unit,
-                              icon: icon,
-                              iconColor: iconColor,
-                              subtitle: subtitle,
-                              showTrend: true,
-                              trend: sensor.trend,
-                              onTap: () {
-                                debugPrint('${sensor.sensorType} card tapped: ${sensor.value} ${sensor.unit}');
-                              },
-                            ),
-                          ),
-                          SizedBox(height: index < provider.sensorData.length - 1 
-                              ? AppSizes.spacingM 
-                              : 0),
-                        ],
-                      );
-                    }).toList(),
-                    const SizedBox(height: AppSizes.spacingXL),
-                    
-                    // Chart Section - Dynamic
-                    Text(
-                      'Sensor Data Chart',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                            letterSpacing: 0.2,
-                          ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingL),
-                    // Animated Chart with Scale + Fade + Update animation
-                    AnimatedBuilder(
-                      animation: _updateAnimationController,
-                      builder: (context, child) {
-                        return Opacity(
-                          opacity: 1.0 - (_updateAnimationController.value * 0.3),
-                          child: Transform.scale(
-                            scale: 1.0 - (_updateAnimationController.value * 0.05),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: ScaleTransition(
-                        scale: _chartScaleAnimation,
-                        child: FadeTransition(
-                          opacity: _chartFadeAnimation,
-                          child: provider.chartData.isEmpty
-                              ? Card(
-                                  child: Container(
-                                    height: 200,
-                                    padding: const EdgeInsets.all(AppSizes.paddingL),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.show_chart,
-                                            size: 48,
-                                            color: AppColors.textSecondary.withOpacity(0.5),
-                                          ),
-                                          const SizedBox(height: AppSizes.spacingM),
-                                          Text(
-                                            'No chart data available',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(
-                                                  color: AppColors.textSecondary,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : SensorChart(
-                                  title: 'Sensor Readings Over Time',
-                                  subtitle: 'Last 24 hours',
-                                  data: provider.chartData,
-                                  onTap: () {
-                                    debugPrint(
-                                        'Chart tapped - ${provider.chartData.length} data points');
-                                  },
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingXL),
-                    
-                    // Action Buttons Section
-                    Text(
-                      'Quick Actions',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                            letterSpacing: 0.2,
-                          ),
-                    ),
-                    const SizedBox(height: AppSizes.spacingL),
-                    
-                    // Camera Button - Dynamic with navigation with gradient
-                    CustomButton(
-                      text: 'Open Camera',
-                      style: CustomButtonStyle.primary,
-                      icon: Icons.camera_alt,
-                      onPressed: () => _handleCameraPress(context),
-                    ),
-                    const SizedBox(height: AppSizes.spacingM),
-                    
-                    // AI Button - Dynamic with navigation
-                    CustomButton(
-                      text: 'AI Predictions',
-                      style: CustomButtonStyle.secondary,
-                      icon: Icons.eco,
-                      onPressed: () => _handleAIPress(context),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-
-    // If showAppBar is true (standalone route), wrap in Scaffold with AppBar and PopScope
-    if (widget.showAppBar) {
-      return PopScope(
-        canPop: false,
-        onPopInvoked: (didPop) {
-          if (!didPop) {
-            _handleBackButton();
-          }
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.eco,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: AppSizes.spacingS),
-                const Text(AppStrings.home),
-              ],
-            ),
-          ),
-          body: content,
-        ),
-      );
-    }
-    
-    // If embedded in MainScaffold (showAppBar = false), return just the content (no Scaffold, no PopScope)
-    return content;
-  }
-}
-
-/// Animated sensor card wrapper with Fade + Slide animation
-class _AnimatedSensorCard extends StatelessWidget {
-  final Animation<double> animation;
-  final Widget child;
-
-  const _AnimatedSensorCard({
-    required this.animation,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        // Fade animation
-        final fadeValue = animation.value;
-        
-        // Slide animation (from bottom)
-        final slideOffset = Tween<double>(
-          begin: 30.0,
-          end: 0.0,
-        ).evaluate(CurvedAnimation(
-          parent: AlwaysStoppedAnimation(animation.value),
-          curve: Curves.easeOut,
-        ));
-        
-        return Opacity(
-          opacity: fadeValue,
-          child: Transform.translate(
-            offset: Offset(0, slideOffset),
-            child: child,
-          ),
-        );
-      },
-      child: child,
-    );
+  /// Format timestamp for display
+  String _formatTime(DateTime date) {
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
   }
 }

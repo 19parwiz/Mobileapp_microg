@@ -3,6 +3,10 @@
     <!-- Camera permission so the camera plugin can access device cameras -->
     <uses-permission android:name="android.permission.CAMERA" />
 
+    <!-- Internet permission for network camera streams -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Declare that this app uses a camera; not required for emulator, but good practice -->
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -11,7 +15,8 @@
     <application
         android:label="AgroTech Microgreens"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

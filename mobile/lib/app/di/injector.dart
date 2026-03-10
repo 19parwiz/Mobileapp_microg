@@ -16,6 +16,10 @@ import '../../features/home/data/sensor_data_service.dart';
 import '../../features/home/data/sensor_repository_impl.dart';
 import '../../features/home/domain/repositories/i_sensor_repository.dart';
 import '../../features/home/domain/usecases/get_sensor_data_use_case.dart';
+import '../../features/home/data/sensor_api.dart';
+import '../../features/home/data/real_sensor_repository_impl.dart';
+import '../../features/home/domain/repositories/i_real_sensor_repository.dart';
+import '../../features/home/domain/usecases/get_real_sensor_data_use_case.dart';
 import '../../features/profile/domain/repositories/i_profile_repository.dart';
 import '../../features/profile/domain/usecases/clear_profile_use_case.dart';
 import '../../features/profile/domain/usecases/get_profile_use_case.dart';
@@ -24,8 +28,12 @@ import '../../features/profile/domain/usecases/update_profile_use_case.dart';
 import '../../features/profile/domain/usecases/update_settings_use_case.dart';
 import '../../features/profile/data/profile_repository.dart';
 import '../../features/ai/data/prediction_repository_impl.dart';
+import '../../features/ai/data/ai_chat_repository_impl.dart';
+import '../../features/ai/domain/entities/ai_chat_message.dart';
+import '../../features/ai/domain/repositories/i_ai_chat_repository.dart';
 import '../../features/ai/domain/repositories/i_prediction_repository.dart';
 import '../../features/ai/domain/usecases/generate_prediction_use_case.dart';
+import '../../features/ai/domain/usecases/send_ai_chat_message_use_case.dart';
 import '../../features/device/data/device_api.dart';
 import '../../features/device/data/device_data_source.dart';
 import '../../features/device/data/device_repository.dart';
@@ -72,6 +80,11 @@ Future<void> setupDependencyInjection() async {
     () => DeviceApi(dio: getIt<Dio>()),
   );
 
+  // Device Data Source - uses real API
+  getIt.registerLazySingleton<DeviceDataSource>(
+    () => DeviceDataSource(deviceApi: getIt<DeviceApi>()),
+  );
+
   // Repositories
   getIt.registerLazySingleton<IAuthRepository>(
     () => AuthRepository(
@@ -91,13 +104,22 @@ Future<void> setupDependencyInjection() async {
     () => SensorRepositoryImpl(service: getIt<SensorDataService>()),
   );
 
+  // Real sensor API (university server)
+  getIt.registerLazySingleton<SensorApi>(
+    () => SensorApi(httpClient: getIt<http.Client>()),
+  );
+
+  // Real sensor repository (university server with polling)
+  getIt.registerLazySingleton<IRealSensorRepository>(
+    () => RealSensorRepositoryImpl(sensorApi: getIt<SensorApi>()),
+  );
+
   getIt.registerLazySingleton<IPredictionRepository>(
     () => PredictionRepositoryImpl(),
   );
 
-  // Device dependencies - now uses real API instead of mock data
-  getIt.registerLazySingleton<DeviceDataSource>(
-    () => DeviceDataSource(),
+  getIt.registerLazySingleton<IAiChatRepository>(
+    () => AiChatRepositoryImpl(dio: getIt<Dio>()),
   );
 
   getIt.registerLazySingleton<IDeviceRepository>(
@@ -147,14 +169,25 @@ Future<void> setupDependencyInjection() async {
     () => GetSensorDataUseCase(sensorRepository: getIt<ISensorRepository>()),
   );
 
-  // Home provider (dashboard) depends on sensor use case
+  // Real sensor use case (university server with live polling)
+  getIt.registerLazySingleton<GetRealSensorDataUseCase>(
+    () => GetRealSensorDataUseCase(repository: getIt<IRealSensorRepository>()),
+  );
+
+  // Home provider (dashboard) depends on REAL sensor use case with polling
   getIt.registerLazySingleton<HomeProvider>(
-    () => HomeProvider(getSensorDataUseCase: getIt<GetSensorDataUseCase>()),
+    () => HomeProvider(getRealSensorDataUseCase: getIt<GetRealSensorDataUseCase>()),
   );
 
   getIt.registerLazySingleton<GeneratePredictionUseCase>(
     () => GeneratePredictionUseCase(
       predictionRepository: getIt<IPredictionRepository>(),
+    ),
+  );
+
+  getIt.registerLazySingleton<SendAiChatMessageUseCase>(
+    () => SendAiChatMessageUseCase(
+      repository: getIt<IAiChatRepository>(),
     ),
   );
 

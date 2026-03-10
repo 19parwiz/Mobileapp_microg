@@ -180,7 +180,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.surfaceDark,
+      // Keep backgrounds light with dark text for maximum readability.
+      scaffoldBackgroundColor: AppColors.backgroundLight,
       
       // Text Theme - Default text styles
       textTheme: _textTheme(colorScheme.onSurface),
@@ -198,17 +199,17 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       
-      // Input Decoration Theme - Dark mode friendly
+      // Input Decoration Theme - force high-contrast text and light fields
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF2C2C2C), // Dark gray for input background
+        fillColor: AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
-          borderSide: BorderSide(color: Color(0xFF444444)),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
-          borderSide: BorderSide(color: Color(0xFF444444)),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
@@ -226,9 +227,8 @@ class AppTheme {
           horizontal: AppSizes.paddingM,
           vertical: AppSizes.paddingM,
         ),
-        // Light text color for dark mode
-        labelStyle: _textTheme(Color(0xFFE0E0E0)).labelLarge,
-        hintStyle: _textTheme(Color(0xFF999999)).bodyMedium,
+        labelStyle: _textTheme(AppColors.textPrimary).labelLarge,
+        hintStyle: _textTheme(AppColors.textSecondary).bodyMedium,
       ),
       
       // Button Themes
@@ -403,18 +403,19 @@ class AppTheme {
       errorContainer: AppColors.error.withOpacity(0.2),
       onErrorContainer: AppColors.error,
       
-      surface: AppColors.surfaceDark,
-      onSurface: AppColors.textOnPrimary,
+      // Use light surfaces and dark text to avoid invisible labels in dark mode.
+      surface: AppColors.surface,
+      onSurface: AppColors.textPrimary,
       onSurfaceVariant: AppColors.textSecondary,
-      surfaceContainerHighest: const Color(0xFF2C2C2C),
+      surfaceContainerHighest: AppColors.background,
       
       outline: AppColors.border,
       outlineVariant: AppColors.divider,
       
       shadow: Colors.black,
       scrim: Colors.black,
-      inverseSurface: AppColors.surface,
-      onInverseSurface: AppColors.textPrimary,
+      inverseSurface: AppColors.surfaceDark,
+      onInverseSurface: AppColors.textOnPrimary,
       inversePrimary: AppColors.primary,
     );
   }
