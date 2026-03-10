@@ -15,6 +15,23 @@ import java.util.Optional;
 public class PredictionController {
     
     private final PredictionService predictionService;
+    private final OpenAiChatService openAiChatService;
+
+    @PostMapping("/chat")
+    public ResponseEntity<?> chat(@RequestBody ChatRequest request) {
+        try {
+            return ResponseEntity.ok(openAiChatService.chat(request));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Failed to generate AI response: " + e.getMessage()));
+        }
+    }
     
     @PostMapping("/predictions")
     public ResponseEntity<?> savePrediction(@RequestBody Prediction prediction) {

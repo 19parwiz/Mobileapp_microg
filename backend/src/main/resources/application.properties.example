@@ -33,6 +33,11 @@ jwt.expiration=86400000
 ai.service.url=http://localhost:5000
 ai.service.api-key=your-api-key-here
 
+# OpenAI Chat Configuration
+# IMPORTANT: Prefer setting OPENAI_API_KEY in environment variables for local/dev/prod.
+openai.api.key=
+openai.model=gpt-4o-mini
+
 # Application Info
 app.name=Microgreens Management System
 app.version=1.0.0
