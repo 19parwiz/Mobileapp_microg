@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../app/config/api_config.dart';
 import '../../../core/utils/logger.dart';
 import '../domain/models/sensor_data.dart';
 
 class SensorApi {
   final http.Client _httpClient;
-  
-  // University server endpoint
-  static const String _baseUrl = 'http://10.1.10.144:5000';
+
   static const String _dataEndpoint = '/data';
 
   SensorApi({required http.Client httpClient}) : _httpClient = httpClient;
@@ -17,7 +16,7 @@ class SensorApi {
   /// Returns live readings: temperature, humidity, CO2, EC, TDS, pH, light, turbidity, soil, water
   /// Includes last 10 historical readings for each sensor
   Future<SensorData> getSensorData() async {
-    final uri = Uri.parse('$_baseUrl$_dataEndpoint');
+    final uri = Uri.parse('${ApiConfig.sensorServiceUrl}$_dataEndpoint');
     const headers = {
       'Accept': 'application/json',
       'Connection': 'close',

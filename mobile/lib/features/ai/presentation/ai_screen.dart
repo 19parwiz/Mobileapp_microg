@@ -6,6 +6,7 @@ import '../../../app/di/injector.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import '../domain/entities/ai_chat_message.dart';
 import '../domain/usecases/send_ai_chat_message_use_case.dart';
 
@@ -124,7 +125,8 @@ class _AIScreenState extends State<AIScreen> {
   @override
   Widget build(BuildContext context) {
     final content = SafeArea(
-      child: Padding(
+      child: ResponsiveConstrained(
+        child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingM),
         child: Column(
           children: [
@@ -158,6 +160,7 @@ class _AIScreenState extends State<AIScreen> {
             const SizedBox(height: AppSizes.spacingM),
             _buildComposer(),
           ],
+        ),
         ),
       ),
     );

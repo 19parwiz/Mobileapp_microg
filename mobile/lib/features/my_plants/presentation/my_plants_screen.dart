@@ -3,18 +3,11 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/widgets/app_loading.dart';
-import '../../../core/widgets/error_page.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import 'providers/PlantProvider.dart';
 import 'PlantCard.dart/PlantCard.dart';
 import 'PlantCard.dart/add_plant_dialog.dart';
 import '../../../features/my_plants/domain/entities/Plant.dart';
-import '../../../app/di/injector.dart';
-import '../../my_plants/domain/usecases/get_plants_use_case.dart';
-import '../../my_plants/domain/usecases/add_plant_use_case.dart';
-import '../../my_plants/domain/usecases/update_plant_use_case.dart';
-import '../../my_plants/domain/usecases/delete_plant_use_case.dart';
-import '../../my_plants/data/plant_repository_impl.dart';
-import '../../my_plants/data/plant_data_source.dart';
 
 /// My Plants screen for managing microgreen plants
 class MyPlantsScreen extends StatefulWidget {
@@ -266,7 +259,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
     }
 
     Widget content = SafeArea(
-      child: Column(
+      child: ResponsiveConstrained(
+        child: Column(
         children: [
           // Search bar (optional - can be added later)
           // For now, just show the content
@@ -274,6 +268,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
             child: _buildContent(context, provider),
           ),
         ],
+        ),
       ),
     );
 

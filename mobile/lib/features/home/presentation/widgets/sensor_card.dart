@@ -61,27 +61,34 @@ class SensorCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingS,
-                  vertical: AppSizes.paddingXS,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                    color: textColor.withValues(alpha: 0.94),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.paddingS,
+                      vertical: AppSizes.paddingXS,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusXL),
+                    ),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                        color: textColor.withValues(alpha: 0.94),
+                      ),
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: AppSizes.spacingS),
               Container(
                 padding: const EdgeInsets.all(AppSizes.paddingS),
                 decoration: BoxDecoration(
@@ -97,28 +104,36 @@ class SensorCard extends StatelessWidget {
             ],
           ),
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                displayValue,
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  height: 0.95,
-                  color: textColor,
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: displayValue,
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        height: 0.95,
+                        color: textColor,
+                      ),
+                    ),
+                    if (unit.isNotEmpty)
+                      TextSpan(
+                        text: ' $unit',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textColor.withValues(alpha: 0.9),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              if (unit.isNotEmpty) const SizedBox(width: AppSizes.spacingS),
-              Text(
-                unit,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: textColor.withValues(alpha: 0.9),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

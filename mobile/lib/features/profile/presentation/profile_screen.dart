@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/di/injector.dart';
 import '../../auth/domain/usecases/logout_use_case.dart';
@@ -76,7 +77,8 @@ class ProfileScreen extends StatelessWidget {
           final displayEmail = profile?.email ?? 'user@example.com';
 
           return SafeArea(
-            child: SingleChildScrollView(
+            child: ResponsiveConstrained(
+              child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSizes.paddingL),
               child: Column(
                 children: [
@@ -201,6 +203,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           );

@@ -5,8 +5,6 @@ import '../../features/camera/presentation/camera_screen.dart';
 import '../../features/ai/presentation/ai_screen.dart';
 import '../../features/my_plants/presentation/my_plants_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
-import '../../app/router/app_router.dart';
-import 'package:go_router/go_router.dart';
 
 /// Main scaffold widget with bottom navigation bar
 /// Maintains state when switching tabs using IndexedStack
@@ -82,8 +80,58 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     final safeIndex = _currentIndex.clamp(0, _screenCount - 1);
+    final width = MediaQuery.of(context).size.width;
+    final useRail = width >= 900;
     debugPrint('MainScaffold build: _currentIndex=$_currentIndex, safeIndex=$safeIndex');
-    
+
+    if (useRail) {
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: safeIndex,
+              onDestinationSelected: _onTabTapped,
+              labelType: NavigationRailLabelType.all,
+              selectedIconTheme: const IconThemeData(color: AppColors.primary),
+              selectedLabelTextStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: Text('Home'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.camera_alt_outlined),
+                  selectedIcon: Icon(Icons.camera_alt),
+                  label: Text('Camera'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.psychology_alt_outlined),
+                  selectedIcon: Icon(Icons.psychology),
+                  label: Text('AI'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.local_florist_outlined),
+                  selectedIcon: Icon(Icons.local_florist),
+                  label: Text('My Plants'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.more_horiz),
+                  selectedIcon: Icon(Icons.more_horiz),
+                  label: Text('More'),
+                ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: _buildScreen(safeIndex)),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: _buildScreen(safeIndex),
       bottomNavigationBar: Container(

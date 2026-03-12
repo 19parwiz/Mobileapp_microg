@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import './home_provider.dart';
 import 'widgets/sensor_card.dart';
 
@@ -27,9 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colorScheme.surface,
       appBar: widget.showAppBar
           ? AppBar(
               title: const Text('IOT Dashboard'),
@@ -50,8 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           : null,
-      body: Consumer<HomeProvider>(
-        builder: (context, provider, child) {
+      body: ResponsiveConstrained(
+        child: Consumer<HomeProvider>(
+          builder: (context, provider, child) {
           final isInitialLoad = provider.isLoading &&
               provider.sensorData.airTemperature == 0;
 
@@ -145,14 +148,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 LayoutBuilder(
                   builder: (context, constraints) {
+                    final orientation = MediaQuery.of(context).orientation;
                     final isTablet = constraints.maxWidth >= AppSizes.mobileBreakpoint;
+                    final crossAxisCount = isTablet
+                        ? (orientation == Orientation.landscape ? 4 : 3)
+                        : (orientation == Orientation.landscape ? 3 : 2);
+                    final childAspectRatio = orientation == Orientation.landscape
+                        ? (isTablet ? 1.35 : 1.15)
+                        : (isTablet ? 1.25 : 1.0);
+
                     return GridView.count(
-                      crossAxisCount: isTablet ? 3 : 2,
+                      crossAxisCount: crossAxisCount,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: AppSizes.spacingM,
                       crossAxisSpacing: AppSizes.spacingM,
-                      childAspectRatio: isTablet ? 1.25 : 1.0,
+                      childAspectRatio: childAspectRatio,
                       children: [
                         SensorCard(
                           label: 'Temperature',
@@ -228,9 +239,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.only(top: AppSizes.spacingL),
                   padding: const EdgeInsets.all(AppSizes.paddingL),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: colorScheme.outlineVariant),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,10 +274,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     margin: const EdgeInsets.only(top: AppSizes.spacingM),
                     padding: const EdgeInsets.all(AppSizes.paddingM),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.12),
+                      color: AppColors.warning.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(AppSizes.radiusM),
                       border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.35),
+                        color: AppColors.warning.withValues(alpha: 0.28),
                       ),
                     ),
                     child: Row(
@@ -291,6 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           );
         },
+        ),
       ),
     );
   }
@@ -305,12 +317,12 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: active
             ? AppColors.soilColor.withValues(alpha: 0.14)
-            : AppColors.backgroundLight,
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppSizes.radiusXL),
         border: Border.all(
           color: active
               ? AppColors.soilColor.withValues(alpha: 0.45)
-              : AppColors.border,
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       child: Row(
@@ -334,15 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-  }
-
-  /// Check if any soil sensors have data
-  bool _hasSoilSensors(HomeProvider provider) {
-    return provider.sensorData.soil1 > 0 ||
-        provider.sensorData.soil2 > 0 ||
-        provider.sensorData.soil3 > 0 ||
-        provider.sensorData.soil4 > 0 ||
-        provider.sensorData.soil5 > 0;
   }
 
   /// Format timestamp for display

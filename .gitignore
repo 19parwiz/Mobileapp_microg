@@ -53,6 +53,7 @@ mobile/**/build/
 mobile/android/.gradle/
 mobile/android/app/*.keystore
 mobile/android/app/*.jks
+mobile/android/key.properties
 mobile/android/local.properties
 mobile/android/.idea/
 mobile/android/*.iml
@@ -66,6 +67,8 @@ mobile/android/captures/
 # iOS
 mobile/ios/Pods/
 mobile/ios/.symlinks/
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
 mobile/ios/Flutter/Flutter.framework
 mobile/ios/Flutter/Flutter.podspec
 mobile/ios/Flutter/FlutterPluginRegistrant/
@@ -247,6 +250,19 @@ coverage/
 # Git commit guide (internal documentation, not for repository)
 GIT_COMMIT_GUIDE.md
 COMMIT_STEPS.md
+COMMIT_STEPS_*.md
+
+# Internal documentation and notes (exclude from commits)
+ARCHITECTURE.txt
+PROGRESS.md
+INTEGRATION_CHECK.md
+EMULATOR_TROUBLESHOOTING.md
+ICON_SETUP.md
+
+# Keep important documentation
+!README.md
+!requirements.txt
+!req.txt
 
 # ============================================
 # Miscellaneous

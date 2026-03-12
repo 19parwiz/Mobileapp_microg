@@ -5,6 +5,7 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_input.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/di/injector.dart';
 import '../domain/usecases/register_use_case.dart';
@@ -88,13 +89,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: const Text(AppStrings.register),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSizes.paddingL),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        child: ResponsiveConstrained(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.paddingL),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 const SizedBox(height: AppSizes.spacingL),
                 AppInput(
                   label: 'Name (Optional)',
@@ -158,7 +160,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

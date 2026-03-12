@@ -78,11 +78,14 @@ lib/
    flutter pub get
    ```
 
-3. **Update API configuration**
-   - Edit `lib/app/config/app_config.dart`
-   - Update `baseUrl` with your backend URL
-   - For Android emulator: `http://10.0.2.2:8080/api`
-   - For iOS simulator: `http://localhost:8080/api`
+3. **Choose backend host (emulator or real phone)**
+    - Default behavior:
+       - Android emulator uses `10.0.2.2`
+       - iOS simulator, web, desktop use `localhost`
+    - For a real phone on the same Wi-Fi, pass your computer LAN IP:
+       - `flutter run --dart-define=API_HOST=192.168.1.20 --dart-define=AI_HOST=192.168.1.20`
+    - If sensor/AI runs on another machine, set `AI_HOST` to that IP.
+    - Make sure phone and backend are in the same network and backend port is reachable.
 
 4. **Run the app**
    ```bash

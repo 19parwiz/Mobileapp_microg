@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/l10n/localization_provider.dart';
 import '../../../core/l10n/app_localization.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import 'profile_provider.dart';
 
 /// Settings screen with language support for English, Farsi, Kazakh, and Russian
@@ -53,7 +54,8 @@ class SettingsScreen extends StatelessWidget {
           final strings = localizationProvider.strings;
 
           return SafeArea(
-            child: ListView(
+            child: ResponsiveConstrained(
+              child: ListView(
               padding: const EdgeInsets.all(AppSizes.paddingL),
               children: [
                 // Theme section
@@ -187,6 +189,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              ),
             ),
           );
         },

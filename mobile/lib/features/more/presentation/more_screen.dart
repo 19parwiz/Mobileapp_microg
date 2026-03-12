@@ -6,6 +6,7 @@ import '../../../app/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../../core/widgets/responsive_constrained.dart';
 import 'package:provider/provider.dart';
 import '../../auth/domain/usecases/get_current_user_use_case.dart';
 
@@ -46,7 +47,8 @@ class _MoreScreenState extends State<MoreScreen> {
         final isDark = themeProvider.isDarkMode;
 
         return SafeArea(
-            child: ListView(
+            child: ResponsiveConstrained(
+              child: ListView(
               padding: const EdgeInsets.all(AppSizes.paddingL),
               children: [
                 ListTile(
@@ -144,6 +146,7 @@ class _MoreScreenState extends State<MoreScreen> {
                   ),
                 ),
               ],
+              ),
             ),
         );
       },

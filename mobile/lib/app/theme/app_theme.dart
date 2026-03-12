@@ -180,8 +180,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      // Keep backgrounds light with dark text for maximum readability.
-      scaffoldBackgroundColor: AppColors.backgroundLight,
+      scaffoldBackgroundColor: colorScheme.surface,
       
       // Text Theme - Default text styles
       textTheme: _textTheme(colorScheme.onSurface),
@@ -199,10 +198,10 @@ class AppTheme {
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       
-      // Input Decoration Theme - force high-contrast text and light fields
+      // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
           borderSide: BorderSide(color: AppColors.border),
@@ -227,8 +226,8 @@ class AppTheme {
           horizontal: AppSizes.paddingM,
           vertical: AppSizes.paddingM,
         ),
-        labelStyle: _textTheme(AppColors.textPrimary).labelLarge,
-        hintStyle: _textTheme(AppColors.textSecondary).bodyMedium,
+        labelStyle: _textTheme(colorScheme.onSurface).labelLarge,
+        hintStyle: _textTheme(colorScheme.onSurfaceVariant).bodyMedium,
       ),
       
       // Button Themes
@@ -286,7 +285,7 @@ class AppTheme {
       // Card Theme - Enhanced with more rounded corners
       cardTheme: CardThemeData(
         elevation: 4,
-        shadowColor: AppColors.primary.withOpacity(0.1),
+        shadowColor: Colors.black.withOpacity(0.25),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusXL),
         ),
@@ -295,7 +294,7 @@ class AppTheme {
       
       // Divider Theme
       dividerTheme: DividerThemeData(
-        color: AppColors.divider,
+        color: colorScheme.outlineVariant,
         thickness: 1,
         space: 1,
       ),
@@ -386,14 +385,14 @@ class AppTheme {
   static ColorScheme get _darkColorScheme {
     return ColorScheme.dark(
       primary: AppColors.primaryLight,
-      onPrimary: AppColors.textOnPrimary,
+      onPrimary: Colors.black,
       primaryContainer: AppColors.primary,
-      onPrimaryContainer: AppColors.primaryLight,
+      onPrimaryContainer: Colors.white,
       
       secondary: AppColors.secondaryLight,
-      onSecondary: AppColors.textOnPrimary,
+      onSecondary: Colors.black,
       secondaryContainer: AppColors.secondary,
-      onSecondaryContainer: AppColors.secondaryLight,
+      onSecondaryContainer: Colors.white,
       
       tertiary: AppColors.accent,
       onTertiary: AppColors.textOnPrimary,
@@ -403,14 +402,13 @@ class AppTheme {
       errorContainer: AppColors.error.withOpacity(0.2),
       onErrorContainer: AppColors.error,
       
-      // Use light surfaces and dark text to avoid invisible labels in dark mode.
-      surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-      onSurfaceVariant: AppColors.textSecondary,
-      surfaceContainerHighest: AppColors.background,
-      
-      outline: AppColors.border,
-      outlineVariant: AppColors.divider,
+      surface: Color(0xFF0F1711),
+      onSurface: Color(0xFFF1F8E9),
+      onSurfaceVariant: Color(0xFFB7C8B1),
+      surfaceContainerHighest: Color(0xFF1C2A1F),
+
+      outline: Color(0xFF4A5F4C),
+      outlineVariant: Color(0xFF314233),
       
       shadow: Colors.black,
       scrim: Colors.black,
