@@ -23,6 +23,7 @@ class SensorApi {
     };
 
     try {
+      AppLogger.i('[SENSOR] Requesting live sensor data');
       http.Response response;
       try {
         response = await _httpClient
@@ -36,11 +37,11 @@ class SensorApi {
       }
 
       if (response.statusCode == 200) {
-        AppLogger.i('Sensor data fetched successfully');
         final dynamic decoded = jsonDecode(response.body);
         if (decoded is! Map<String, dynamic>) {
           throw Exception('Invalid sensor response format');
         }
+        AppLogger.i('[SENSOR] Live sensor data updated');
         return SensorData.fromJson(decoded);
       } else {
         throw Exception(
@@ -48,17 +49,17 @@ class SensorApi {
         );
       }
     } on FormatException catch (e) {
-      AppLogger.e('SensorApi.getSensorData parse error', e);
+      AppLogger.e('[SENSOR] Invalid response format', e);
       throw Exception('Invalid JSON received from sensor server');
     } on http.ClientException catch (e) {
-      AppLogger.e('SensorApi.getSensorData client exception', e);
+      AppLogger.e('[SENSOR] Network client error', e);
       throw Exception('Network client error: ${e.message}');
     } on TimeoutException {
       const errorMessage = 'Connection timeout - sensor server may be offline';
-      AppLogger.e('SensorApi.getSensorData timeout', errorMessage);
+      AppLogger.e('[SENSOR] Request timeout', errorMessage);
       throw Exception(errorMessage);
     } catch (e) {
-      AppLogger.e('SensorApi.getSensorData error', e);
+      AppLogger.e('[SENSOR] Request failed', e);
       rethrow;
     }
   }

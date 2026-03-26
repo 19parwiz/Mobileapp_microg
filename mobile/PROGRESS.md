@@ -1,100 +1,170 @@
 # Mobile App Development Progress
 
+> **Last reviewed:** 2026-03-26 — aligned with the current codebase (`lib/`, DI, and routes).  
+> For setup and high-level features, see also `README.md`.
+
+---
+
+## Summary
+
+| Area | Status |
+|------|--------|
+| Core UI, theme, navigation | ✅ Largely complete |
+| Auth + JWT (API + secure storage + router guard) | ✅ Complete |
+| Home dashboard (live sensor polling) | ✅ Complete |
+| Devices (API + screens + CRUD) | ✅ Complete |
+| My Plants (API + UI) | ✅ Complete |
+| AI assistant **chat** (HTTP to AI service) | ✅ Complete |
+| AI **prediction** button / model flow | ⚠️ Placeholder only |
+| Camera (device + lab stream: HLS / MJPEG / WebView fallbacks) | ✅ Advanced; see “Still to do” for save/preview |
+| Responsive layouts (large screens) | ✅ Partial — `ResponsiveConstrained` on key screens |
+| MQTT / WebSocket in app | ❌ Not implemented (config stubs + DI TODOs) |
+| Profile/settings cloud sync | ⚠️ Local secure storage only |
+
+*Table status verified: 2026-03-26.*
+
+---
+
 ## Core Infrastructure
 
-### Theme & Design
-- ✅ Material 3 theme with primary and secondary colors - 2025-12-13
-- ✅ Green plant-themed color palette for microgreens app - 2025-12-13
-- ✅ Default text styles configuration - 2025-12-13
-- ✅ Light and dark theme support - 2025-12-13
+### Theme & design
+- ✅ Material 3 theme with primary and secondary colors — 2025-12-13
+- ✅ Green plant-themed color palette — 2025-12-13
+- ✅ Default text styles configuration — 2025-12-13
+- ✅ Light and dark theme support — 2025-12-13
+- ✅ Dark mode compatibility for redesigned pages (Auth, Home, Camera, AI, etc.) — 2026-03-19
+- ✅ Text contrast and font visibility for light/dark — 2026-03-19
 
-### Routing & Navigation
-- ✅ GoRouter setup with /home and /profile routes - 2025-12-13
-- ✅ Error page for invalid routes - 2025-12-13
-- ✅ Navigation between screens configured - 2025-12-13
-- ✅ Camera and AI routes added - 2025-12-13
-- ✅ Back button handling with confirmation dialog - 2025-12-13
-- ✅ Bottom navigation bar implemented with Home, Camera, AI, Profile tabs - 2025-12-16
+### Routing & navigation
+- ✅ GoRouter with login, register, home, profile, settings, camera, AI, devices, admin, etc. — 2026-03-25
+- ✅ Error page for invalid routes — 2025-12-13
+- ✅ Back button handling with confirmation where applicable — 2025-12-13
+- ✅ Bottom navigation (Home, Camera, AI, Profile) with main scaffold — 2025-12-16
+- ✅ **Auth redirect:** protected routes require token; logged-in users redirected away from login/register (`app_router.dart`) — 2026-03-25
 
-## Core Widgets
+### Networking & configuration
+- ✅ Dio `ApiClient` with timeouts, JSON headers, **Bearer token** interceptor, optional logging — 2026-03-25
+- ✅ `ApiConfig`: `baseUrl` for Spring API, `aiServiceUrl`, camera stream hosts (`CAMERA_HOST` / `dart-define` overrides) — 2026-03-25
+- ✅ Separate `http.Client` path for university / sensor service where used — 2026-03-25
 
-### Custom Components
-- ✅ CustomButton widget with primary/secondary styles and hover effects - 2025-12-13
-- ✅ SensorCard widget for displaying sensor readings (title, value, icon) - 2025-12-13
-- ✅ PlaceholderChart widget for sensor data visualization - 2025-12-13
-- ✅ SensorChart widget with fl_chart for dynamic data visualization - 2025-12-13
-- ✅ Fixed charts_flutter compatibility issue by replacing with fl_chart - 2025-12-13
-- ✅ ErrorPage widget for handling invalid routes - 2025-12-13
+---
 
-## Home Dashboard
+## Core widgets
 
-### Dashboard Features
-- ✅ HomeDashboard screen with sensor cards layout - 2025-12-13
-- ✅ Temperature sensor card with trend indicator - 2025-12-13
-- ✅ Humidity sensor card with trend indicator - 2025-12-13
-- ✅ Light sensor card with trend indicator - 2025-12-13
-- ✅ Placeholder chart widget integration - 2025-12-13
-- ✅ Camera button with plant-themed design - 2025-12-13
-- ✅ AI Predictions button with plant icon - 2025-12-13
-- ✅ Welcome card with plant icon and green theme - 2025-12-13
-- ✅ AppBar with plant icon integration - 2025-12-13
-- ✅ HomeDashboard made dynamic with mock sensor data, chart updates, button actions, and back navigation handling - 2025-12-13
-- ✅ HomeDashboard is now dynamic with mock sensor data, dynamic chart, button actions, and back navigation handling - 2025-12-13
-- ✅ Fixed WillPopScope deprecation by replacing with PopScope - 2025-12-13
-- ✅ Implemented ListView for dynamic sensor cards rendering - 2025-12-13
-- ✅ Enhanced logging for all button taps, back presses, and sensor updates - 2025-12-13
-- ✅ Fixed all warnings: removed unused imports and variables, updated PopScope to use onPopInvokedWithResult - 2025-12-13
-- ✅ HomeDashboard animations added (cards, chart, buttons) - 2025-12-16
+- ✅ CustomButton (primary/secondary, hover) — 2025-12-13
+- ✅ SensorCard — 2025-12-13
+- ✅ PlaceholderChart / SensorChart (`fl_chart`) — 2025-12-13
+- ✅ ErrorPage — 2025-12-13
+- ✅ **ResponsiveConstrained** — max width on tablet/desktop; used on Home, AI, Auth, Profile, Settings, More, My Plants — 2026-03-25
 
-## Design & Styling
+---
 
-### Plant-Themed Design
-- ✅ Green color scheme implementation - 2025-12-13
-- ✅ Plant icon (eco) integration throughout UI - 2025-12-13
-- ✅ Plant health color coding - 2025-12-13
-- ✅ Sensor card color updates for plant theme - 2025-12-13
-- ✅ Green plant-themed UI enhanced with gradients and improved contrast - 2025-12-16
+## Home dashboard
 
-## Features to Implement Later
+- ✅ Sensor cards, charts, plant-themed actions, animations — 2025-12-13 / 2025-12-16
+- ✅ **Live data:** `HomeProvider` polls **real** sensor data via `GetRealSensorDataUseCase` → `RealSensorRepositoryImpl` → `SensorApi` (not the old mock-only dashboard path) — 2026-03-25
+- ✅ ListView for dynamic sensor cards, PopScope migration, logging — 2025-12-13
+- ⚠️ Mock sensor stack still registered in DI for `GetSensorDataUseCase` / demos; dashboard uses the **real** path above — 2026-03-25
 
-### Authentication (Bypassed for Design Phase)
-- [ ] Login screen functionality
-- [ ] Registration screen functionality
-- [ ] Authentication flow integration
-- [ ] Token management
+---
 
-### Camera Module
-- ✅ Camera screen placeholder implementation - 2025-12-13
-- [ ] Image capture functionality
-- [ ] Image preview and processing
+## Authentication
 
-### AI Module
-- ✅ AI predictions screen placeholder - 2025-12-13
-- [ ] AI model integration
-- [ ] Prediction display and visualization
+- ✅ Login and registration screens with validation — 2026-03-25
+- ✅ `AuthApi` → Spring `/auth/login`, `/auth/register`; JWT stored in **FlutterSecureStorage** — 2026-03-25
+- ✅ Logout clears token and user payload (even if API fails) — 2026-03-25
+- ✅ `AuthRepository`, use cases, and router integration — 2026-03-25
 
-### Charts & Data Visualization
-- ✅ Real chart implementation with charts_flutter - 2025-12-13
-- ✅ Sensor data chart with time series - 2025-12-13
-- [ ] Interactive chart features
+---
 
-### Backend Integration
-- [ ] API integration for sensor data
-- [ ] Real-time data updates
-- [ ] MQTT client implementation
-- [ ] WebSocket for real-time updates
+## Camera module
 
-### Device Management
-- [ ] Device list screen
-- [ ] Device CRUD operations
-- [ ] Device configuration
+- ✅ Device camera preview and switching (`camera` package) — 2026-03-25
+- ✅ Lab / remote streams: HLS, MJPEG viewer, WebView fallback, retry logic (`camera_screen.dart` and widgets) — 2026-03-25
+- ✅ `ApiConfig` camera URLs (`cameraHlsBaseUrl`, `cameraMjpegBaseUrl`, overrides) — 2026-03-25
+- ✅ Improved HLS startup latency by removing duplicate VideoPlayer probing/initialization — 2026-03-26
+- ✅ Stabilized stream behavior by limiting aggressive auto-reconnect loops and adding init timeout — 2026-03-26
+- ✅ Reduced confusing extra physical camera entries by limiting visible device cameras to primary front/back — 2026-03-26
+- ✅ Improved camera connection test UI: non-2xx HTTP responses (e.g., 404) now show as errors, not success — 2026-03-26
+- [ ] **Still to do:** persist capture to gallery/files, dedicated preview screen, optional AI pipeline on captured image — *(open)*
 
-- ✅ Added `Device` model and repository interface (`mobile/lib/app/models/device.dart`, `mobile/lib/app/domain/repositories/device_repository.dart`) - 2026-01-09
-- ✅ Moved Settings entry from Profile to More screen (Profile cleaned; Settings accessible via More) - 2026-01-09
+---
 
-### Additional Features
-- [ ] Profile editing functionality
-- [ ] Settings screen
-- [ ] Notifications
-- [ ] Data export functionality
+## AI module
 
+- ✅ **Chat:** `AIScreen` + `SendAiChatMessageUseCase` + `AiChatRepositoryImpl` (Dio) with error handling — 2026-03-25
+- ⚠️ **Predictions:** `PredictionRepositoryImpl` still returns a static “coming soon” message; not wired to a real prediction endpoint/model — 2026-03-25
+- [ ] **Still to do:** real prediction API or on-device model; richer prediction UI/visualization — *(open)*
+
+---
+
+## Charts & data visualization
+
+- ✅ Time-series charts with `fl_chart` — 2025-12-13
+- [ ] **Still to do:** deeper interactivity (zoom, scrub, per-metric drill-down) if required for thesis — *(open)*
+
+---
+
+## Backend & IoT integration
+
+- ✅ REST integration for **auth**, **devices**, **plants** (Dio + token) — 2026-03-25
+- ✅ **Sensor dashboard:** HTTP polling to configured sensor/university service (`SensorApi` / `ApiConfig.sensorServiceUrl`) — 2026-03-25
+- [ ] **Still to do:** **MQTT** client (`app_config.dart` broker TODO; not registered in `injector.dart`) — *(open)*
+- [ ] **Still to do:** **WebSocket** client for push updates (`app_config.dart` URL TODO; not registered in `injector.dart`) — *(open)*
+
+---
+
+## Device management
+
+- ✅ Device list, detail, add, edit screens — 2026-03-25
+- ✅ `DeviceApi`, `DeviceDataSource`, `DeviceRepository`, use cases, `DeviceProvider` — 2026-03-25
+- ✅ Domain model under `features/device/domain/device.dart` (legacy `app/models/device.dart` may still exist — prefer feature module) — 2026-03-25
+- [ ] **Still to do:** richer device configuration UI, firmware/OTA, or MQTT-driven control if in scope — *(open)*
+
+---
+
+## My Plants
+
+- ✅ `PlantApi` / `PlantDataSource` / `PlantRepositoryImpl` / use cases / `PlantProvider` / UI (CRUD dialogs, list) — 2026-03-25
+- ⚠️ Repository file comment may still say “mock”; **runtime path uses the API** (see `plant_data_source.dart`) — 2026-03-25
+
+---
+
+## Profile, settings, More
+
+- ✅ Profile screen, edit profile, settings (theme, notifications, language, units, auto-refresh, etc.) — 2026-03-25
+- ✅ Settings moved to **More** flow (Profile cleaned) — 2026-01-09
+- ✅ Local persistence via secure storage (`ProfileRepository`) — 2026-03-25
+- [ ] **Still to do:** sync profile/settings with Spring backend if required for grading — *(open)*
+
+---
+
+## Admin
+
+- ✅ Admin panel screen and route (role/usage depends on backend; see backend security) — 2026-03-25
+
+---
+
+## Additional features (not implemented or optional)
+
+- [ ] Push / local **notifications** for alerts — *(open)*
+- [ ] **Data export** (CSV, reports) — *(open)*
+- [ ] **Forgot password** / reset flow — *(open)*
+- [ ] Onboarding / first-run tutorial — *(open)*
+- [ ] Pull-to-refresh on home (if desired) — *(open)*
+- [ ] Avatar **image upload** to backend — *(open)*
+- [ ] **Video playback** polish for recorded streams (deps noted as “ready” in README) — *(open)*
+
+---
+
+## Documentation hygiene
+
+- [ ] Keep this file and `README.md` TODO sections in sync after major changes (several README bullets are outdated vs code) — *(open)*
+- ✅ Simplified mobile startup script (`run.bat`) for campus/vpn/local flows with cleaner phone handling — 2026-03-26
+
+---
+
+## Responsive pages
+
+- ✅ **Done (baseline):** `ResponsiveConstrained` applied on main flows (see Core widgets) — 2026-03-25
+- [ ] **Optional next steps:** audit remaining screens (Camera full layout, device forms, admin) for the same pattern; consider `LayoutBuilder` breakpoints shared as constants — *(open)*

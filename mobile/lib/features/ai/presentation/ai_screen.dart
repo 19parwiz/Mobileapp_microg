@@ -27,7 +27,8 @@ class _AIScreenState extends State<AIScreen> {
   final List<AiChatMessage> _messages = const [
     AiChatMessage(
       role: 'assistant',
-      content: 'Ask me about microgreens, sensors, pH, EC, lighting, or what to do next in your growing room.',
+      content:
+          'Please select a topic or ask a question about microgreens, sensor values (pH, EC, light), or next steps for your growing room.',
     ),
   ].toList();
 
@@ -47,14 +48,10 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Future<void> _sendMessage([String? preset]) async {
-    if (_isSending) {
-      return;
-    }
+    if (_isSending) return;
 
     final text = (preset ?? _messageController.text).trim();
-    if (text.isEmpty) {
-      return;
-    }
+    if (text.isEmpty) return;
 
     setState(() {
       _messages.add(AiChatMessage(role: 'user', content: text));
@@ -65,17 +62,13 @@ class _AIScreenState extends State<AIScreen> {
 
     try {
       final reply = await _sendAiChatMessageUseCase(_messages);
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _messages.add(AiChatMessage(role: 'assistant', content: reply));
       });
     } on DioException catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       final responseData = e.response?.data;
       String errorMessage = 'Failed to contact AI service.';
@@ -89,15 +82,15 @@ class _AIScreenState extends State<AIScreen> {
         _messages.add(AiChatMessage(role: 'assistant', content: errorMessage));
       });
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
-        _messages.add(AiChatMessage(
-          role: 'assistant',
-          content: 'Something went wrong while generating a reply: $e',
-        ));
+        _messages.add(
+          AiChatMessage(
+            role: 'assistant',
+            content: 'Something went wrong while generating a reply: $e',
+          ),
+        );
       });
     } finally {
       if (mounted) {
@@ -111,11 +104,9 @@ class _AIScreenState extends State<AIScreen> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) {
-        return;
-      }
+      if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 120,
+        _scrollController.position.maxScrollExtent + 140,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
@@ -124,43 +115,44 @@ class _AIScreenState extends State<AIScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgTop = isDark ? const Color(0xFF102117) : const Color(0xFFF6F9F0);
+    final bgBottom = isDark ? const Color(0xFF0C1912) : const Color(0xFFEEF4E8);
+    final card = isDark ? colorScheme.surfaceContainerHigh : Colors.white;
+    final border = isDark ? colorScheme.outlineVariant : const Color(0xFFCFE0C7);
+    final textPrimary = isDark ? colorScheme.onSurface : AppColors.textPrimary;
+    final textSecondary =
+        isDark ? colorScheme.onSurfaceVariant : AppColors.textSecondary;
+
     final content = SafeArea(
       child: ResponsiveConstrained(
-        child: Padding(
-        padding: const EdgeInsets.all(AppSizes.paddingM),
-        child: Column(
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: AppSizes.spacingM),
-            _buildPredictionPlaceholder(context),
-            const SizedBox(height: AppSizes.spacingM),
-            _buildQuickQuestions(),
-            const SizedBox(height: AppSizes.spacingM),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: ListView.separated(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(AppSizes.paddingM),
-                  itemCount: _messages.length + (_isSending ? 1 : 0),
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSizes.spacingM),
-                  itemBuilder: (context, index) {
-                    if (_isSending && index == _messages.length) {
-                      return _buildTypingBubble();
-                    }
-                    return _buildMessageBubble(context, _messages[index]);
-                  },
-                ),
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [bgTop, bgBottom],
             ),
-            const SizedBox(height: AppSizes.spacingM),
-            _buildComposer(),
-          ],
-        ),
+          ),
+          child: ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(AppSizes.paddingL),
+            children: [
+              _buildHeroCard(theme, isDark),
+              const SizedBox(height: AppSizes.spacingL),
+              _buildTopicChips(card, border, textPrimary),
+              const SizedBox(height: AppSizes.spacingM),
+              _buildPredictionCard(card, border, textPrimary, textSecondary, isDark),
+              const SizedBox(height: AppSizes.spacingM),
+              _buildChatSurface(card, border, textPrimary, textSecondary, isDark),
+              const SizedBox(height: AppSizes.spacingM),
+              _buildComposer(card, border, textPrimary, textSecondary),
+              const SizedBox(height: AppSizes.spacingM),
+            ],
+          ),
         ),
       ),
     );
@@ -168,10 +160,8 @@ class _AIScreenState extends State<AIScreen> {
     if (widget.showAppBar) {
       return Scaffold(
         appBar: AppBar(
-          leading: BackButton(
-            onPressed: () => context.go(AppRouter.home),
-          ),
-          title: const Text('AI Chat'),
+          leading: BackButton(onPressed: () => context.go(AppRouter.home)),
+          title: const Text('AI Assistant'),
         ),
         body: content,
       );
@@ -180,17 +170,23 @@ class _AIScreenState extends State<AIScreen> {
     return content;
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeroCard(ThemeData theme, bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSizes.paddingL),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(AppSizes.radiusXL),
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? const [Color(0xFF1E5F2C), Color(0xFF0F321A)]
+              : const [Color(0xFF2E7D32), Color(0xFF114A20)],
+        ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            blurRadius: 12,
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.18),
+            blurRadius: 14,
             offset: const Offset(0, 6),
           ),
         ],
@@ -200,89 +196,97 @@ class _AIScreenState extends State<AIScreen> {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(AppSizes.paddingS),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusM),
-                ),
-                child: const Icon(
-                  Icons.psychology,
-                  color: Colors.white,
-                ),
+              Icon(
+                Icons.spa_outlined,
+                color: Colors.white.withValues(alpha: 0.96),
+                size: 26,
               ),
-              const SizedBox(width: AppSizes.spacingM),
+              const SizedBox(width: AppSizes.spacingS),
               Expanded(
                 child: Text(
-                  'AgroTech AI Assistant',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  'AgroTech AI Assistant\n- Your Intelligent Grow Guide',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSizes.spacingS),
+          const SizedBox(height: AppSizes.spacingM),
           Text(
-            'Ask questions about your microgreens, sensor readings, camera observations, and growing decisions.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
+            'Consult on microgreens, sensor data analysis, and advanced growing strategies.',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.95),
+              height: 1.3,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickQuestions() {
-    final prompts = [
-      'What is the ideal humidity for microgreens?',
-      'How should I react to high pH?',
-      'What should I check if growth slows down?',
+  Widget _buildTopicChips(Color card, Color border, Color textPrimary) {
+    final topics = <(String, IconData, String)>[
+      ('Humidity', Icons.water_drop_outlined, 'Analyze humidity trend for last 24h'),
+      ('Sensor Health', Icons.monitor_heart_outlined, 'Check if any sensor is unstable'),
+      ('Optimal pH', Icons.science_outlined, 'What pH range should I maintain now?'),
+      ('AI Predictions', Icons.psychology_outlined, 'Give me next 48h grow recommendations'),
     ];
 
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: prompts.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSizes.spacingS),
-        itemBuilder: (context, index) {
-          final prompt = prompts[index];
-          return ActionChip(
-            label: Text(prompt),
-            onPressed: () => _sendMessage(prompt),
-            backgroundColor: AppColors.surface,
-            side: const BorderSide(color: AppColors.border),
-          );
-        },
-      ),
+    return Wrap(
+      spacing: AppSizes.spacingS,
+      runSpacing: AppSizes.spacingS,
+      children: topics
+          .map(
+            (topic) => ActionChip(
+              avatar: Icon(topic.$2, size: 20, color: AppColors.primary),
+              label: Text(topic.$1),
+              backgroundColor: card,
+              side: BorderSide(color: border),
+              labelStyle: TextStyle(
+                color: textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+              onPressed: () => _sendMessage(topic.$3),
+            ),
+          )
+          .toList(),
     );
   }
 
-  Widget _buildPredictionPlaceholder(BuildContext context) {
+  Widget _buildPredictionCard(
+    Color card,
+    Color border,
+    Color textPrimary,
+    Color textSecondary,
+    bool isDark,
+  ) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(AppSizes.paddingM),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-        border: Border.all(color: AppColors.border),
+        color: card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(AppSizes.paddingS),
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              color: AppColors.warning.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.local_florist,
-              color: AppColors.textPrimary,
-            ),
+            child: const Icon(Icons.spa, color: AppColors.primary),
           ),
           const SizedBox(width: AppSizes.spacingM),
           Expanded(
@@ -290,19 +294,20 @@ class _AIScreenState extends State<AIScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Plant Prediction',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                  'Predictions',
+                  style: TextStyle(
+                    color: textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 24 / 1.6,
+                  ),
                 ),
-                const SizedBox(height: AppSizes.spacingXS),
+                const SizedBox(height: 2),
                 Text(
-                  'Your trained plant model will be connected later. For now, this tab is active for AI chat only.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                        height: 1.35,
-                      ),
+                  'Trained model available soon',
+                  style: TextStyle(
+                    color: textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -312,66 +317,113 @@ class _AIScreenState extends State<AIScreen> {
     );
   }
 
-  Widget _buildMessageBubble(BuildContext context, AiChatMessage message) {
-    final isUser = message.role == 'user';
+  Widget _buildChatSurface(
+    Color card,
+    Color border,
+    Color textPrimary,
+    Color textSecondary,
+    bool isDark,
+  ) {
+    final assistantMessages = _messages.where((m) => m.role == 'assistant').toList();
+    final lastAssistant = assistantMessages.isNotEmpty
+        ? assistantMessages.last.content
+        : 'Ask the AI assistant anything about your growing room.';
 
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320),
-        child: Container(
-          padding: const EdgeInsets.all(AppSizes.paddingM),
-          decoration: BoxDecoration(
-            color: isUser ? AppColors.primary : AppColors.backgroundLight,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(AppSizes.radiusL),
-              topRight: const Radius.circular(AppSizes.radiusL),
-              bottomLeft: Radius.circular(isUser ? AppSizes.radiusL : AppSizes.radiusS),
-              bottomRight: Radius.circular(isUser ? AppSizes.radiusS : AppSizes.radiusL),
-            ),
-            border: isUser ? null : Border.all(color: AppColors.border),
-          ),
-          child: Text(
-            message.content,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isUser ? Colors.white : AppColors.textPrimary,
-                  height: 1.4,
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingM),
+      decoration: BoxDecoration(
+        color: card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSizes.paddingM),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1A2A1E) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
+              ],
+            ),
+            child: Text(
+              lastAssistant,
+              style: TextStyle(
+                color: textPrimary,
+                fontSize: 16,
+                height: 1.35,
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: AppSizes.spacingM),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.paddingL,
+              vertical: AppSizes.paddingM - 2,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2C3D2B) : const Color(0xFFE4EDD9),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Text(
+              'Analyze humidity trend for last 24h',
+              style: TextStyle(
+                color: textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (_isSending) ...[
+            const SizedBox(height: AppSizes.spacingM),
+            Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: AppSizes.spacingS),
+                Text(
+                  'Generating AI response...',
+                  style: TextStyle(color: textSecondary),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildTypingBubble() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.paddingM,
-          vertical: AppSizes.paddingS,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.backgroundLight,
-          borderRadius: BorderRadius.circular(AppSizes.radiusL),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComposer() {
+  Widget _buildComposer(
+    Color card,
+    Color border,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppSizes.paddingS),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-        border: Border.all(color: AppColors.border),
+        color: card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
       ),
       child: Row(
         children: [
@@ -382,19 +434,34 @@ class _AIScreenState extends State<AIScreen> {
               maxLines: 4,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _sendMessage(),
-              decoration: const InputDecoration(
+              style: TextStyle(color: textPrimary),
+              decoration: InputDecoration(
                 hintText: 'Ask the AI assistant...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: AppSizes.paddingM),
+                hintStyle: TextStyle(color: textSecondary),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingM,
+                  vertical: AppSizes.paddingS,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.6),
+                ),
               ),
             ),
           ),
-          IconButton.filled(
+          const SizedBox(width: AppSizes.spacingS),
+          IconButton(
             onPressed: _isSending ? null : _sendMessage,
-            icon: const Icon(Icons.arrow_upward),
+            icon: const Icon(Icons.send_rounded),
             style: IconButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+              minimumSize: const Size(48, 48),
             ),
           ),
         ],
@@ -402,4 +469,3 @@ class _AIScreenState extends State<AIScreen> {
     );
   }
 }
-

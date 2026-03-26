@@ -33,13 +33,22 @@ class _CameraConnectionTestState extends State<CameraConnectionTest> {
         Uri.parse(widget.url),
       ).timeout(const Duration(seconds: 5));
 
-      setState(() {
-        _isTesting = false;
-        _result = 'Success! Status: ${response.statusCode}\n'
-            'Headers: ${response.headers}\n'
-            'Body length: ${response.bodyBytes.length} bytes';
-        _error = null;
-      });
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        setState(() {
+          _isTesting = false;
+          _result = 'Success! Status: ${response.statusCode}\n'
+              'Headers: ${response.headers}\n'
+              'Body length: ${response.bodyBytes.length} bytes';
+          _error = null;
+        });
+      } else {
+        setState(() {
+          _isTesting = false;
+          _result = null;
+          _error = 'HTTP ${response.statusCode}. Stream URL responded but is not playable.\n'
+              'Body length: ${response.bodyBytes.length} bytes';
+        });
+      }
     } catch (e) {
       setState(() {
         _isTesting = false;

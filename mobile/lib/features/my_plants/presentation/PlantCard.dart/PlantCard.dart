@@ -46,31 +46,45 @@ class PlantCard extends StatelessWidget {
     }
   }
 
+  bool _isStreamActive(Plant plant) {
+    final source = '${plant.name} ${plant.type} ${plant.description ?? ''}'.toLowerCase();
+    return source.contains('hls') || source.contains('stream');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white;
+    final outlineColor = isDark ? theme.colorScheme.outlineVariant : const Color(0xFFDCE8D6);
+
+    final stageColor = _getGrowthStageColor(plant.growthStage);
+    final healthColor = _getHealthColor(plant.healthStatus);
+    final streamActive = _isStreamActive(plant);
+
     return Card(
-      margin: EdgeInsets.only(bottom: AppSizes.spacingM),
+      margin: const EdgeInsets.only(bottom: AppSizes.spacingM),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusL),
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: outlineColor),
       ),
-      elevation: 2,
+      color: cardColor,
+      elevation: 3,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizes.radiusL),
+        borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding: EdgeInsets.all(AppSizes.paddingL),
+          padding: const EdgeInsets.all(AppSizes.paddingL),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with icon, name, and actions
               Row(
                 children: [
-                  // Plant icon/emoji
                   Container(
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppSizes.radiusM),
                     ),
                     child: Center(
@@ -80,33 +94,31 @@ class PlantCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(width: AppSizes.spacingM),
-                  // Plant name and type
+                  const SizedBox(width: AppSizes.spacingM),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           plant.name,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: theme.colorScheme.onSurface,
                               ),
                         ),
-                        SizedBox(height: AppSizes.spacingXS),
+                        const SizedBox(height: AppSizes.spacingXS),
                         Text(
                           plant.type,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                         ),
                       ],
                     ),
                   ),
-                  // Action buttons
                   if (onEdit != null)
                     IconButton(
-                      icon: Icon(Icons.edit, color: AppColors.primary),
+                      icon: const Icon(Icons.edit, color: AppColors.primary),
                       onPressed: onEdit,
                       tooltip: 'Edit plant',
                     ),
@@ -118,130 +130,101 @@ class PlantCard extends StatelessWidget {
                     ),
                 ],
               ),
-              SizedBox(height: AppSizes.spacingM),
-              
-              // Description
+
+              const SizedBox(height: AppSizes.spacingM),
+
               if (plant.description != null && plant.description!.isNotEmpty)
                 Padding(
-                  padding: EdgeInsets.only(bottom: AppSizes.spacingS),
+                  padding: const EdgeInsets.only(bottom: AppSizes.spacingS),
                   child: Text(
                     plant.description!,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              
-              // Growth stage and health status badges
+
               Wrap(
                 spacing: AppSizes.spacingS,
                 runSpacing: AppSizes.spacingS,
                 children: [
-                  // Growth stage badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizes.paddingM,
-                      vertical: AppSizes.paddingXS,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getGrowthStageColor(plant.growthStage).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusM),
-                      border: Border.all(
-                        color: _getGrowthStageColor(plant.growthStage).withOpacity(0.3),
-                      ),
-                    ),
-                    child: Text(
-                      plant.growthStage,
-                      style: TextStyle(
-                        color: _getGrowthStageColor(plant.growthStage),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
+                  _StatusChip(
+                    icon: Icons.spa,
+                    label: plant.growthStage,
+                    foreground: stageColor,
                   ),
-                  // Health status badge
                   if (plant.healthStatus != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.paddingM,
-                        vertical: AppSizes.paddingXS,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getHealthColor(plant.healthStatus).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppSizes.radiusM),
-                        border: Border.all(
-                          color: _getHealthColor(plant.healthStatus).withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            plant.healthStatus?.toLowerCase() == 'healthy'
-                                ? Icons.check_circle
-                                : Icons.warning,
-                            size: 14,
-                            color: _getHealthColor(plant.healthStatus),
-                          ),
-                          SizedBox(width: AppSizes.spacingXS),
-                          Text(
-                            plant.healthStatus!,
-                            style: TextStyle(
-                              color: _getHealthColor(plant.healthStatus),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _StatusChip(
+                      icon: plant.healthStatus?.toLowerCase() == 'healthy'
+                          ? Icons.check_circle
+                          : Icons.warning,
+                      label: plant.healthStatus!,
+                      foreground: healthColor,
+                    ),
+                  if (streamActive)
+                    const _StatusChip(
+                      icon: Icons.videocam,
+                      label: 'Monitor Stream Active',
+                      foreground: Color(0xFF1565C0),
                     ),
                 ],
               ),
-              
-              SizedBox(height: AppSizes.spacingM),
-              
-              // Days since planting
+
+              const SizedBox(height: AppSizes.spacingM),
+
               if (plant.daysSincePlanting != null)
                 Row(
                   children: [
                     Icon(
                       Icons.calendar_today,
                       size: 16,
-                      color: AppColors.textSecondary,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    SizedBox(width: AppSizes.spacingXS),
+                    const SizedBox(width: AppSizes.spacingXS),
                     Text(
                       'Planted ${plant.daysSincePlanting} day${plant.daysSincePlanting == 1 ? '' : 's'} ago',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w500,
                           ),
                     ),
                   ],
                 ),
-              
-              // Notes
+
               if (plant.notes != null && plant.notes!.isNotEmpty) ...[
-                SizedBox(height: AppSizes.spacingS),
+                const SizedBox(height: AppSizes.spacingM),
+                Text(
+                  'NOTES',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    letterSpacing: 0.4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSizes.spacingS),
                 Container(
-                  padding: EdgeInsets.all(AppSizes.paddingM),
+                  padding: const EdgeInsets.all(AppSizes.paddingM),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.05),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                    border: Border.all(color: outlineColor),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
-                        Icons.note,
+                        Icons.description_outlined,
                         size: 16,
                         color: AppColors.primary,
                       ),
-                      SizedBox(width: AppSizes.spacingS),
+                      const SizedBox(width: AppSizes.spacingS),
                       Expanded(
                         child: Text(
                           plant.notes!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface,
                               ),
                         ),
                       ),
@@ -252,6 +235,48 @@ class PlantCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color foreground;
+
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    required this.foreground,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingM,
+        vertical: AppSizes.paddingXS,
+      ),
+      decoration: BoxDecoration(
+        color: foreground.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+        border: Border.all(color: foreground.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: foreground),
+          const SizedBox(width: AppSizes.spacingXS),
+          Text(
+            label,
+            style: TextStyle(
+              color: foreground,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }

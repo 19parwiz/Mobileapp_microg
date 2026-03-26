@@ -70,10 +70,13 @@ class HomeProvider extends ChangeNotifier {
     try {
       _sensorData = await _getRealSensorDataUseCase();
       _lastUpdated = DateTime.now();
-      AppLogger.i('Sensor data loaded: ${_sensorData.airTemperature}°C');
+      AppLogger.i(
+        '[SENSOR] Dashboard loaded: ${_sensorData.airTemperature}°C, '
+        '${_sensorData.airHumidity}%',
+      );
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      AppLogger.e('HomeProvider.loadSensorData error', e);
+      AppLogger.e('[SENSOR] Initial load failed', e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -85,7 +88,7 @@ class HomeProvider extends ChangeNotifier {
     _pollingTimer = Timer.periodic(_pollingInterval, (_) {
       _updateSensorData();
     });
-    AppLogger.i('Sensor polling started (5 second interval)');
+    AppLogger.i('[SENSOR] Polling started (${_pollingInterval.inSeconds}s interval)');
   }
 
   /// Update sensor data from university server (polling)
@@ -97,7 +100,7 @@ class HomeProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _errorMessage = e.toString().replaceAll('Exception: ', '');
-      AppLogger.e('HomeProvider._updateSensorData polling error', e);
+      AppLogger.e('[SENSOR] Polling update failed', e);
       notifyListeners();
     }
   }
@@ -110,7 +113,7 @@ class HomeProvider extends ChangeNotifier {
   @override
   void dispose() {
     _pollingTimer?.cancel();
-    AppLogger.i('Sensor polling stopped');
+    AppLogger.i('[SENSOR] Polling stopped');
     super.dispose();
   }
 }

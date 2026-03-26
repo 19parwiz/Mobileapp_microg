@@ -3,11 +3,12 @@ import 'package:logger/logger.dart';
 class AppLogger {
   static final Logger _logger = Logger(
     printer: PrettyPrinter(
-      methodCount: 2,
-      errorMethodCount: 8,
-      lineLength: 120,
+      methodCount: 0,
+      errorMethodCount: 3,
+      lineLength: 100,
       colors: true,
-      printEmojis: true,
+      printEmojis: false,
+      noBoxingByDefault: true,
       dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
     ),
   );

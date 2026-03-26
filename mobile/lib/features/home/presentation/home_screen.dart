@@ -4,7 +4,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/widgets/responsive_constrained.dart';
 import './home_provider.dart';
-import 'widgets/sensor_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -16,10 +15,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const List<String> _cameraNames = [
+    'Camera 1',
+    'Camera 2',
+    'Camera 3',
+    'Camera 4',
+  ];
+
   @override
   void initState() {
     super.initState();
-    // Load sensor data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeProvider>().loadSensorData();
     });
@@ -28,13 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final pageBg = isDark ? const Color(0xFF0F1D14) : const Color(0xFFF2F7EF);
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: pageBg,
       appBar: widget.showAppBar
           ? AppBar(
-              title: const Text('IOT Dashboard'),
+              title: const Text('Farm Monitor'),
               elevation: 0,
               backgroundColor: Colors.transparent,
               foregroundColor: AppColors.textPrimary,
@@ -42,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Consumer<HomeProvider>(
                   builder: (context, provider, child) {
                     return IconButton(
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh_rounded),
                       onPressed: provider.isLoading
                           ? null
                           : () => provider.refreshSensorData(),
@@ -52,304 +58,419 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           : null,
-      body: ResponsiveConstrained(
-        child: Consumer<HomeProvider>(
-          builder: (context, provider, child) {
-          final isInitialLoad = provider.isLoading &&
-              provider.sensorData.airTemperature == 0;
+      body: Consumer<HomeProvider>(
+        builder: (context, provider, child) {
+          final isInitialLoad =
+              provider.isLoading && provider.sensorData.airTemperature == 0;
 
-          // Loading state
           if (isInitialLoad) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
-          // Data loaded
           return RefreshIndicator(
             onRefresh: () => provider.refreshSensorData(),
-            child: ListView(
-              padding: const EdgeInsets.all(AppSizes.paddingL),
-              children: [
-                // Hero status card
-                Container(
-                  padding: const EdgeInsets.all(AppSizes.paddingL),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary,
-                        AppColors.secondaryDark,
-                      ],
+            child: ResponsiveConstrained(
+              child: ListView(
+                padding: const EdgeInsets.all(AppSizes.paddingL),
+                children: [
+                  _buildHeroCard(theme, provider),
+                  const SizedBox(height: AppSizes.spacingL),
+                  Text(
+                    'Status at a Glance',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.26),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(AppSizes.paddingM),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AppSizes.radiusL),
-                        ),
-                        child: const Icon(
-                          Icons.hub_rounded,
-                          color: Colors.white,
-                          size: AppSizes.iconL,
-                        ),
-                      ),
-                      const SizedBox(width: AppSizes.spacingM),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Live Growing Room',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: AppSizes.spacingXS),
-                            Text(
-                              provider.lastUpdated != null
-                                  ? 'Updated ${_formatTime(provider.lastUpdated!)}'
-                                  : 'Waiting for sensor update',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.88),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: AppSizes.spacingL),
-
-                Text(
-                  'Environment Metrics',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-
-                const SizedBox(height: AppSizes.spacingM),
-
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final orientation = MediaQuery.of(context).orientation;
-                    final isTablet = constraints.maxWidth >= AppSizes.mobileBreakpoint;
-                    final crossAxisCount = isTablet
-                        ? (orientation == Orientation.landscape ? 4 : 3)
-                        : (orientation == Orientation.landscape ? 3 : 2);
-                    final childAspectRatio = orientation == Orientation.landscape
-                        ? (isTablet ? 1.35 : 1.15)
-                        : (isTablet ? 1.25 : 1.0);
-
-                    return GridView.count(
-                      crossAxisCount: crossAxisCount,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: AppSizes.spacingM,
-                      crossAxisSpacing: AppSizes.spacingM,
-                      childAspectRatio: childAspectRatio,
-                      children: [
-                        SensorCard(
-                          label: 'Temperature',
-                          value: provider.sensorData.airTemperature,
-                          unit: '°C',
-                          icon: Icons.thermostat,
-                          backgroundColor: const Color(0xFF1F8A70),
-                        ),
-                        SensorCard(
-                          label: 'Humidity',
-                          value: provider.sensorData.airHumidity,
-                          unit: '%',
-                          icon: Icons.water_drop,
-                          backgroundColor: const Color(0xFF2979FF),
-                        ),
-                        SensorCard(
-                          label: 'CO2',
-                          value: provider.sensorData.co2,
-                          unit: 'ppm',
-                          icon: Icons.co2,
-                          backgroundColor: const Color(0xFFEF6C00),
-                          fractionDigits: 0,
-                        ),
-                        SensorCard(
-                          label: 'pH',
-                          value: provider.sensorData.phLevel,
-                          unit: '',
-                          icon: Icons.science_outlined,
-                          backgroundColor: const Color(0xFF7B1FA2),
-                          fractionDigits: 2,
-                        ),
-                        SensorCard(
-                          label: 'EC',
-                          value: provider.sensorData.ec,
-                          unit: 'mS/cm',
-                          icon: Icons.bolt,
-                          backgroundColor: const Color(0xFF1565C0),
-                          fractionDigits: 3,
-                        ),
-                        SensorCard(
-                          label: 'TDS',
-                          value: provider.sensorData.tds,
-                          unit: 'ppm',
-                          icon: Icons.opacity,
-                          backgroundColor: const Color(0xFF455A64),
-                          fractionDigits: 0,
-                        ),
-                        SensorCard(
-                          label: 'Light',
-                          value: provider.sensorData.lightLevel,
-                          unit: 'lux',
-                          icon: Icons.wb_sunny,
-                          backgroundColor: const Color(0xFFF9A825),
-                          textColor: Colors.black87,
-                          iconColor: Colors.black87,
-                          fractionDigits: 0,
-                        ),
-                        SensorCard(
-                          label: 'Turbidity',
-                          value: provider.sensorData.turbidity,
-                          unit: 'NTU',
-                          icon: Icons.grain,
-                          backgroundColor: const Color(0xFF6D4C41),
-                          fractionDigits: 0,
-                        ),
-                      ],
-                    );
-                  },
-                ),
-
-                // Soil Moisture Section
-                Container(
-                  margin: const EdgeInsets.only(top: AppSizes.spacingL),
-                  padding: const EdgeInsets.all(AppSizes.paddingL),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                    border: Border.all(color: colorScheme.outlineVariant),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Substrate Moisture',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.spacingM),
-                      Wrap(
-                        spacing: AppSizes.spacingS,
-                        runSpacing: AppSizes.spacingS,
+                  const SizedBox(height: AppSizes.spacingM),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = constraints.maxWidth >= 700 ? 3 : 2;
+                      return GridView.count(
+                        crossAxisCount: columns,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: AppSizes.spacingM,
+                        crossAxisSpacing: AppSizes.spacingM,
+                        childAspectRatio: 1.42,
                         children: [
-                          _buildSoilChip(context, 'Shelf 1', provider.sensorData.soil1),
-                          _buildSoilChip(context, 'Shelf 2', provider.sensorData.soil2),
-                          _buildSoilChip(context, 'Shelf 3', provider.sensorData.soil3),
-                          _buildSoilChip(context, 'Shelf 4', provider.sensorData.soil4),
-                          _buildSoilChip(context, 'Shelf 5', provider.sensorData.soil5),
+                          _MetricCard(
+                            label: 'Temperature',
+                            value:
+                                '${provider.sensorData.airTemperature.toStringAsFixed(1)} °C',
+                            icon: Icons.thermostat_outlined,
+                            accent: const Color(0xFF2F8B57),
+                            isDark: isDark,
+                          ),
+                          _MetricCard(
+                            label: 'Humidity',
+                            value:
+                                '${provider.sensorData.airHumidity.toStringAsFixed(1)} %',
+                            icon: Icons.water_drop_outlined,
+                            accent: const Color(0xFF2F7A47),
+                            isDark: isDark,
+                          ),
+                          _MetricCard(
+                            label: 'pH',
+                            value: provider.sensorData.phLevel.toStringAsFixed(2),
+                            icon: Icons.science_outlined,
+                            accent: const Color(0xFF9A8442),
+                            isDark: isDark,
+                          ),
+                          _MetricCard(
+                            label: 'EC',
+                            value: '${provider.sensorData.ec.toStringAsFixed(3)} mS/cm',
+                            icon: Icons.bolt_outlined,
+                            accent: const Color(0xFF778B35),
+                            isDark: isDark,
+                          ),
+                          _MetricCard(
+                            label: 'CO2',
+                            value: '${provider.sensorData.co2.toStringAsFixed(0)} ppm',
+                            icon: Icons.co2_outlined,
+                            accent: const Color(0xFF7B8D4D),
+                            isDark: isDark,
+                          ),
+                          _MetricCard(
+                            label: 'TDS',
+                            value: '${provider.sensorData.tds.toStringAsFixed(0)} ppm',
+                            icon: Icons.opacity_outlined,
+                            accent: const Color(0xFF3C7D5F),
+                            isDark: isDark,
+                          ),
                         ],
-                      ),
-                    ],
+                      );
+                    },
                   ),
-                ),
-
-                if (provider.hasError)
-                  Container(
-                    margin: const EdgeInsets.only(top: AppSizes.spacingM),
-                    padding: const EdgeInsets.all(AppSizes.paddingM),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusM),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.28),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.textPrimary.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(width: AppSizes.spacingS),
-                        Expanded(
-                          child: Text(
-                            'Temporary network issue. Showing latest available values.',
-                            style: theme.textTheme.bodySmall,
+                  const SizedBox(height: AppSizes.spacingL),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Available Device Cameras',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
                           ),
                         ),
-                      ],
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text('See All'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 136,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) => _CameraTile(
+                        title: _cameraNames[index],
+                        isDark: isDark,
+                      ),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(width: AppSizes.spacingM),
+                      itemCount: _cameraNames.length,
                     ),
                   ),
-
-                const SizedBox(height: AppSizes.spacingXL),
-              ],
+                  const SizedBox(height: AppSizes.spacingL),
+                  Wrap(
+                    spacing: AppSizes.spacingS,
+                    runSpacing: AppSizes.spacingS,
+                    children: const [
+                      _QuickActionChip(label: 'Quick-chat', icon: Icons.spa),
+                      _QuickActionChip(label: 'Elegant suggestion'),
+                      _QuickActionChip(label: 'Fast your grow'),
+                    ],
+                  ),
+                  if (provider.hasError)
+                    Container(
+                      margin: const EdgeInsets.only(top: AppSizes.spacingL),
+                      padding: const EdgeInsets.all(AppSizes.paddingM),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                        border: Border.all(
+                          color: AppColors.warning.withValues(alpha: 0.34),
+                        ),
+                      ),
+                      child: Text(
+                        'Network issue detected. Displaying latest values.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  const SizedBox(height: AppSizes.spacingXL),
+                ],
+              ),
             ),
           );
         },
-        ),
       ),
     );
   }
 
-  Widget _buildSoilChip(BuildContext context, String label, double value) {
-    final active = value > 0;
+  Widget _buildHeroCard(ThemeData theme, HomeProvider provider) {
+    final updatedLabel = provider.lastUpdated != null
+        ? 'Updated ${_formatTime(provider.lastUpdated!)}'
+        : 'Waiting for first update';
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.paddingM,
-        vertical: AppSizes.paddingS,
-      ),
+      padding: const EdgeInsets.all(AppSizes.paddingL),
       decoration: BoxDecoration(
-        color: active
-            ? AppColors.soilColor.withValues(alpha: 0.14)
-            : Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-        border: Border.all(
-          color: active
-              ? AppColors.soilColor.withValues(alpha: 0.45)
-              : Theme.of(context).colorScheme.outlineVariant,
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF97CC9A),
+            Color(0xFF5D9162),
+          ],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2E7D32).withValues(alpha: 0.26),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white.withValues(alpha: 0.24),
+            ),
+            child: const Icon(
+              Icons.hub_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
           ),
-          const SizedBox(width: AppSizes.spacingS),
-          Text(
-            value.toStringAsFixed(1),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
+          const SizedBox(width: AppSizes.spacingM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Live Growing Room',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
+                const SizedBox(height: AppSizes.spacingXS),
+                Text(
+                  updatedLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            provider.isLoading ? Icons.sync : Icons.sync_rounded,
+            color: Colors.white.withValues(alpha: 0.88),
           ),
         ],
       ),
     );
   }
 
-  /// Format timestamp for display
   String _formatTime(DateTime date) {
     return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color accent;
+  final bool isDark;
+
+  const _MetricCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.accent,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.paddingM),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: isDark
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFFFFF), Color(0xFFEAF3E7)],
+              ),
+        color: isDark ? Theme.of(context).colorScheme.surfaceContainerHigh : null,
+        border: Border.all(
+          color: isDark
+              ? Theme.of(context).colorScheme.outlineVariant
+              : const Color(0xFFD7E5D1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              Icon(icon, color: accent, size: AppSizes.iconM),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CameraTile extends StatelessWidget {
+  final String title;
+  final bool isDark;
+
+  const _CameraTile({required this.title, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 148,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? const [Color(0xFF3D473C), Color(0xFF1E231D)]
+                      : const [Color(0xFFB5A38E), Color(0xFF6D604E)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.14),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Container(
+                  margin: const EdgeInsets.all(AppSizes.paddingS),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.paddingS,
+                    vertical: AppSizes.paddingXS,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'LIVE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingS),
+          Center(
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionChip extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+
+  const _QuickActionChip({required this.label, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.paddingM,
+        vertical: AppSizes.paddingS,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A3A2A) : const Color(0xFFEAF4E5),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark
+              ? Theme.of(context).colorScheme.outlineVariant
+              : const Color(0xFFCBDEC4),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: AppSizes.iconS, color: AppColors.primary),
+            const SizedBox(width: AppSizes.spacingS),
+          ],
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }

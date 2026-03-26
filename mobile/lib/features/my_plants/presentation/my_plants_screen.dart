@@ -107,7 +107,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
             Container(
               padding: const EdgeInsets.all(AppSizes.paddingXL),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -153,6 +153,8 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
   }
 
   Widget _buildContent(BuildContext context, PlantProvider provider) {
+    final theme = Theme.of(context);
+
     if (provider.isLoading) {
       return const Center(child: AppLoading());
     }
@@ -202,44 +204,63 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
       child: ListView(
         padding: const EdgeInsets.all(AppSizes.paddingL),
         children: [
-          // Header with plant count
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'My Garden',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.paddingM,
+              vertical: AppSizes.paddingS,
+            ),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.spa_outlined,
+                  color: AppColors.primary,
+                  size: AppSizes.iconM,
+                ),
+                const SizedBox(width: AppSizes.spacingS),
+                Expanded(
+                  child: Text(
+                    'MY GARDEN - AgroTech Portfolio',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: theme.colorScheme.onSurface,
                     ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingM,
-                  vertical: AppSizes.paddingXS,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusM),
-                ),
-                child: Text(
-                  '${provider.plantCount} plant${provider.plantCount == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.paddingM,
+                    vertical: AppSizes.paddingXS,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${provider.plantCount}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: AppSizes.spacingL),
-          
-          // Plant cards
+
           ...provider.plants.map((plant) => PlantCard(
                 plant: plant,
                 onEdit: () => _showEditPlantDialog(context, provider, plant),
                 onDelete: () => _showDeleteConfirmation(context, provider, plant),
               )),
+
+          // Intentionally no AI section here by request.
+          const SizedBox(height: AppSizes.spacingXL * 2),
         ],
       ),
     );
@@ -261,13 +282,11 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
     Widget content = SafeArea(
       child: ResponsiveConstrained(
         child: Column(
-        children: [
-          // Search bar (optional - can be added later)
-          // For now, just show the content
-          Expanded(
-            child: _buildContent(context, provider),
-          ),
-        ],
+          children: [
+            Expanded(
+              child: _buildContent(context, provider),
+            ),
+          ],
         ),
       ),
     );

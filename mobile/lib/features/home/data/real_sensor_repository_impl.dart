@@ -13,12 +13,9 @@ class RealSensorRepositoryImpl implements IRealSensorRepository {
   @override
   Future<SensorData> getSensorData() async {
     try {
-      AppLogger.i('Fetching sensor data from university server...');
-      final data = await _sensorApi.getSensorData();
-      AppLogger.i('Sensor data fetched successfully');
-      return data;
+      return await _sensorApi.getSensorData();
     } catch (e) {
-      AppLogger.e('RealSensorRepositoryImpl.getSensorData error', e);
+      AppLogger.e('[SENSOR] Repository fetch failed', e);
       rethrow;
     }
   }

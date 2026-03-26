@@ -60,20 +60,12 @@ class _MainScaffoldState extends State<MainScaffold> {
   void _onTabTapped(int index) {
     // Validate index is within bounds
     if (index < 0 || index >= _screenCount) {
-      debugPrint('Invalid tab index: $index. Valid range: 0-${_screenCount - 1}');
       return;
     }
-    debugPrint('MainScaffold: tab tapped $index (current=$_currentIndex)');
     if (index != _currentIndex) {
-      // Switch internal tabs
-      debugPrint('MainScaffold: about to setState for index $index');
       setState(() {
-        debugPrint('MainScaffold: switching internal tab from $_currentIndex to $index');
         _currentIndex = index;
       });
-      debugPrint('MainScaffold: setState done, _currentIndex now $_currentIndex');
-    } else {
-      debugPrint('MainScaffold: tapped same tab $index, doing nothing');
     }
   }
 
@@ -82,7 +74,6 @@ class _MainScaffoldState extends State<MainScaffold> {
     final safeIndex = _currentIndex.clamp(0, _screenCount - 1);
     final width = MediaQuery.of(context).size.width;
     final useRail = width >= 900;
-    debugPrint('MainScaffold build: _currentIndex=$_currentIndex, safeIndex=$safeIndex');
 
     if (useRail) {
       return Scaffold(
