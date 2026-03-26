@@ -1,5 +1,8 @@
 package com.aliparwiz.microgreens.device;
 
+import com.aliparwiz.microgreens.device.dto.DeviceRequest;
+import com.aliparwiz.microgreens.device.dto.DeviceResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,35 +19,32 @@ public class DeviceController {
     private final DeviceService deviceService;
     
     @GetMapping
-    public ResponseEntity<List<Device>> getAllDevices() {
+    public ResponseEntity<List<DeviceResponse>> getAllDevices() {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<Device> getDeviceById(@PathVariable Long id) {
+    public ResponseEntity<DeviceResponse> getDeviceById(@PathVariable Long id) {
         try {
-            Device device = deviceService.getDeviceById(id);
-            return ResponseEntity.ok(device);
+            return ResponseEntity.ok(deviceService.getDeviceById(id));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
     
     @GetMapping("/device-id/{deviceId}")
-    public ResponseEntity<Device> getDeviceByDeviceId(@PathVariable String deviceId) {
+    public ResponseEntity<DeviceResponse> getDeviceByDeviceId(@PathVariable String deviceId) {
         try {
-            Device device = deviceService.getDeviceByDeviceId(deviceId);
-            return ResponseEntity.ok(device);
+            return ResponseEntity.ok(deviceService.getDeviceByDeviceId(deviceId));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
     
     @PostMapping
-    public ResponseEntity<?> createDevice(@RequestBody Device device) {
+    public ResponseEntity<?> createDevice(@Valid @RequestBody DeviceRequest request) {
         try {
-            Device created = deviceService.createDevice(device);
-            return ResponseEntity.ok(created);
+            return ResponseEntity.ok(deviceService.createDevice(request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
                 .body(Map.of("message", e.getMessage()));
@@ -54,10 +54,9 @@ public class DeviceController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateDevice(
             @PathVariable Long id,
-            @RequestBody Device deviceDetails) {
+            @Valid @RequestBody DeviceRequest request) {
         try {
-            Device updated = deviceService.updateDevice(id, deviceDetails);
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok(deviceService.updateDevice(id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
                 .body(Map.of("message", e.getMessage()));

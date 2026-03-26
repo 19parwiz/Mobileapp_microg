@@ -1,5 +1,8 @@
 package com.aliparwiz.microgreens.auth;
 
+import com.aliparwiz.microgreens.auth.dto.AuthResponse;
+import com.aliparwiz.microgreens.auth.dto.LoginRequest;
+import com.aliparwiz.microgreens.auth.dto.RegisterRequest;
 import com.aliparwiz.microgreens.exception.ValidationException;
 import com.aliparwiz.microgreens.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -26,13 +28,15 @@ public class AuthService {
     
     /**
      * Register a new user
-     * @param email User email
-     * @param password User password
-     * @param name User name
+     * @param request User registration request
      * @return Response containing user info and JWT token
      */
     @Transactional
-    public Map<String, Object> register(String email, String password, String name) {
+    public AuthResponse register(RegisterRequest request) {
+        String email = request.getEmail();
+        String password = request.getPassword();
+        String name = request.getName();
+
         // Validate input
         if (email == null || email.trim().isEmpty()) {
             throw new ValidationException("Email cannot be empty");
@@ -55,7 +59,7 @@ public class AuthService {
         user.setRole(Role.USER);
         
         User savedUser = authRepository.save(user);
-        log.info("New user registered: {}", savedUser.getEmail());
+        log.info("[AUTH] Registered user: {}", savedUser.getEmail());
         
         // Generate JWT token
         String token = jwtTokenProvider.generateToken(
@@ -63,35 +67,28 @@ public class AuthService {
             savedUser.getEmail(), 
             savedUser.getRole().name()
         );
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", savedUser.getId());
-        response.put("email", savedUser.getEmail());
-        response.put("name", savedUser.getName());
-        response.put("role", savedUser.getRole().name());
-        response.put("token", token);
-        response.put("accessToken", token);
-        response.put("expiresIn", jwtTokenProvider.getJwtExpirationMs());
-        
-        return response;
+
+        return buildAuthResponse(savedUser, token);
     }
     
     /**
      * Login user with email and password
-     * @param email User email
-     * @param password User password
+     * @param request User login request
      * @return Response containing user info and JWT token
      */
-    public Map<String, Object> login(String email, String password) {
+    public AuthResponse login(LoginRequest request) {
+        String email = request.getEmail();
+        String password = request.getPassword();
+
         User user = authRepository.findByEmail(email)
             .orElseThrow(() -> new ValidationException("Invalid email or password"));
         
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            log.warn("Failed login attempt for user: {}", email);
+            log.warn("[AUTH] Login failed for user: {}", email);
             throw new ValidationException("Invalid email or password");
         }
         
-        log.info("User logged in: {}", email);
+        log.info("[AUTH] User logged in: {}", email);
         
         // Generate JWT token
         String token = jwtTokenProvider.generateToken(
@@ -99,17 +96,8 @@ public class AuthService {
             user.getEmail(), 
             user.getRole().name()
         );
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", user.getId());
-        response.put("email", user.getEmail());
-        response.put("name", user.getName());
-        response.put("role", user.getRole().name());
-        response.put("token", token);
-        response.put("accessToken", token);
-        response.put("expiresIn", jwtTokenProvider.getJwtExpirationMs());
-        
-        return response;
+
+        return buildAuthResponse(user, token);
     }
     
     /**
@@ -117,8 +105,20 @@ public class AuthService {
      * @return Logout confirmation message
      */
     public Map<String, String> logout(String email) {
-        log.info("User logged out: {}", email);
+        log.info("[AUTH] User logged out: {}", email);
         return Map.of("message", "Logged out successfully");
+    }
+
+    private AuthResponse buildAuthResponse(User user, String token) {
+        return AuthResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .name(user.getName())
+            .role(user.getRole().name())
+            .token(token)
+            .accessToken(token)
+            .expiresIn(jwtTokenProvider.getJwtExpirationMs())
+            .build();
     }
 }
 

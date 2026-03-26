@@ -3,6 +3,7 @@ package com.aliparwiz.microgreens.plant;
 import com.aliparwiz.microgreens.auth.AuthRepository;
 import com.aliparwiz.microgreens.auth.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -10,11 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Plant Service
  * Business logic for plant management
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlantService {
@@ -68,7 +71,7 @@ public class PlantService {
      * Get plant by ID (ensuring it belongs to current user or user is admin)
      */
     public Plant getPlantById(Long id) {
-        Plant plant = plantRepository.findById(id)
+        Plant plant = plantRepository.findById(Objects.requireNonNull(id, "Plant id is required"))
             .orElseThrow(() -> new RuntimeException("Plant not found"));
 
         if (isCurrentUserAdmin()) {
@@ -103,7 +106,7 @@ public class PlantService {
         plant.setUpdatedAt(LocalDateTime.now());
         
         Plant savedPlant = plantRepository.save(plant);
-        System.out.println("Plant created successfully: " + savedPlant.getName() + " for user: " + email);
+        log.info("[PLANT] Created plant: name='{}', owner='{}'", savedPlant.getName(), email);
         return savedPlant;
     }
     
@@ -146,8 +149,8 @@ public class PlantService {
     @Transactional
     public void deletePlant(Long id) {
         Plant plant = getPlantById(id); // This checks ownership
-        plantRepository.delete(plant);
-        System.out.println("Plant deleted successfully: " + plant.getName());
+        plantRepository.delete(Objects.requireNonNull(plant, "Plant must not be null"));
+        log.info("[PLANT] Deleted plant: name='{}'", plant.getName());
     }
     
     /**

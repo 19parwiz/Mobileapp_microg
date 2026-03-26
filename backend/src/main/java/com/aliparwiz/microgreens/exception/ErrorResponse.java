@@ -1,6 +1,7 @@
 package com.aliparwiz.microgreens.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,5 +24,7 @@ public class ErrorResponse {
     private String error;
     private String message;
     private String path;
+
+    @JsonProperty("errors")
     private Map<String, String> validationErrors;
 }

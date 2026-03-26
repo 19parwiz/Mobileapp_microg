@@ -99,13 +99,13 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("Validation Failed")
-                .message("Input validation failed")
+                .error("Bad Request")
+                .message("Validation failed")
                 .validationErrors(errors)
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
         
-        log.warn("Input validation failed: {}", errors);
+        log.warn("Validation failed: {}", errors);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 

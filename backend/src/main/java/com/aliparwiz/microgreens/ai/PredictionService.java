@@ -1,6 +1,7 @@
 package com.aliparwiz.microgreens.ai;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -8,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PredictionService {
@@ -20,7 +22,11 @@ public class PredictionService {
             prediction.setTimestamp(LocalDateTime.now());
         }
         prediction.setCreatedAt(LocalDateTime.now());
-        return predictionRepository.save(prediction);
+        Prediction savedPrediction = predictionRepository.save(prediction);
+        log.info("[AI] Saved prediction: type='{}', deviceId='{}'",
+            savedPrediction.getPredictionType(),
+            savedPrediction.getDevice() != null ? savedPrediction.getDevice().getId() : null);
+        return savedPrediction;
     }
     
     // TODO: Add method to receive prediction from Python AI service

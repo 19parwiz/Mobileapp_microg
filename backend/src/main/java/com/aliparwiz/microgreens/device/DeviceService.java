@@ -2,7 +2,10 @@ package com.aliparwiz.microgreens.device;
 
 import com.aliparwiz.microgreens.auth.AuthRepository;
 import com.aliparwiz.microgreens.auth.User;
+import com.aliparwiz.microgreens.device.dto.DeviceRequest;
+import com.aliparwiz.microgreens.device.dto.DeviceResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -10,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeviceService {
@@ -18,16 +23,20 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final AuthRepository authRepository;
     
-    public List<Device> getAllDevices() {
+    public List<DeviceResponse> getAllDevices() {
         if (isCurrentUserAdmin()) {
-            return deviceRepository.findAll();
+            return deviceRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
         }
 
         Long userId = getCurrentUserId();
         if (userId == null) {
             return List.of();
         }
-        return deviceRepository.findByOwnerId(userId);
+        return deviceRepository.findByOwnerId(userId).stream()
+            .map(this::toResponse)
+            .toList();
     }
     
     private Long getCurrentUserId() {
@@ -51,8 +60,12 @@ public class DeviceService {
             .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
     
-    public Device getDeviceById(Long id) {
-        Device device = deviceRepository.findById(id)
+    public DeviceResponse getDeviceById(Long id) {
+        return toResponse(getDeviceEntityById(id));
+    }
+
+    private Device getDeviceEntityById(Long id) {
+        Device device = deviceRepository.findById(Objects.requireNonNull(id, "Device id is required"))
             .orElseThrow(() -> new RuntimeException("Device not found"));
 
         if (isCurrentUserAdmin()) {
@@ -67,13 +80,15 @@ public class DeviceService {
         return device;
     }
     
-    public Device getDeviceByDeviceId(String deviceId) {
-        return deviceRepository.findByDeviceId(deviceId)
+    public DeviceResponse getDeviceByDeviceId(String deviceId) {
+        Device device = deviceRepository.findByDeviceId(deviceId)
             .orElseThrow(() -> new RuntimeException("Device not found"));
+        return toResponse(device);
     }
     
     @Transactional
-    public Device createDevice(Device device) {
+    public DeviceResponse createDevice(DeviceRequest request) {
+        Device device = toEntity(request);
         if (device.getDeviceId() != null && deviceRepository.existsByDeviceId(device.getDeviceId())) {
             throw new RuntimeException("Device with this ID already exists");
         }
@@ -91,37 +106,51 @@ public class DeviceService {
         
         device.setCreatedAt(LocalDateTime.now());
         device.setUpdatedAt(LocalDateTime.now());
-        return deviceRepository.save(device);
+        Device savedDevice = deviceRepository.save(device);
+        log.info("[DEVICE] Created device: id='{}', name='{}', owner='{}'",
+            savedDevice.getDeviceId(), savedDevice.getName(), email);
+        return toResponse(savedDevice);
     }
     
     @Transactional
-    public Device updateDevice(Long id, Device deviceDetails) {
-        Device device = getDeviceById(id);
+    public DeviceResponse updateDevice(Long id, DeviceRequest request) {
+        Device device = getDeviceEntityById(id);
         
-        if (deviceDetails.getName() != null) {
-            device.setName(deviceDetails.getName());
+        if (request.getName() != null) {
+            device.setName(request.getName());
         }
-        if (deviceDetails.getDescription() != null) {
-            device.setDescription(deviceDetails.getDescription());
+        if (request.getDeviceId() != null && !request.getDeviceId().equals(device.getDeviceId())) {
+            if (deviceRepository.existsByDeviceId(request.getDeviceId())) {
+                throw new RuntimeException("Device with this ID already exists");
+            }
+            device.setDeviceId(request.getDeviceId());
         }
-        if (deviceDetails.getDeviceType() != null) {
-            device.setDeviceType(deviceDetails.getDeviceType());
+        if (request.getDescription() != null) {
+            device.setDescription(request.getDescription());
         }
-        if (deviceDetails.getLocation() != null) {
-            device.setLocation(deviceDetails.getLocation());
+        if (request.getDeviceType() != null) {
+            device.setDeviceType(request.getDeviceType());
         }
-        if (deviceDetails.getIsActive() != null) {
-            device.setIsActive(deviceDetails.getIsActive());
+        if (request.getLocation() != null) {
+            device.setLocation(request.getLocation());
+        }
+        if (request.getIsActive() != null) {
+            device.setIsActive(request.getIsActive());
         }
         
         device.setUpdatedAt(LocalDateTime.now());
-        return deviceRepository.save(device);
+        Device updatedDevice = deviceRepository.save(device);
+        log.info("[DEVICE] Updated device: id='{}', name='{}'",
+            updatedDevice.getDeviceId(), updatedDevice.getName());
+        return toResponse(updatedDevice);
     }
     
     @Transactional
     public void deleteDevice(Long id) {
-        Device device = getDeviceById(id);
-        deviceRepository.delete(device);
+        Device device = getDeviceEntityById(id);
+        deviceRepository.delete(Objects.requireNonNull(device, "Device must not be null"));
+        log.info("[DEVICE] Deleted device: id='{}', name='{}'",
+            device.getDeviceId(), device.getName());
     }
     
     @Transactional
@@ -132,6 +161,31 @@ public class DeviceService {
             device.setLastSeen(LocalDateTime.now());
             deviceRepository.save(device);
         }
+    }
+
+    private DeviceResponse toResponse(Device device) {
+        return DeviceResponse.builder()
+            .id(device.getId())
+            .name(device.getName())
+            .deviceId(device.getDeviceId())
+            .description(device.getDescription())
+            .deviceType(device.getDeviceType())
+            .location(device.getLocation())
+            .isActive(device.getIsActive())
+            .lastSeen(device.getLastSeen())
+            .createdAt(device.getCreatedAt())
+            .build();
+    }
+
+    private Device toEntity(DeviceRequest request) {
+        Device device = new Device();
+        device.setName(request.getName());
+        device.setDeviceId(request.getDeviceId());
+        device.setDescription(request.getDescription());
+        device.setDeviceType(request.getDeviceType());
+        device.setLocation(request.getLocation());
+        device.setIsActive(request.getIsActive());
+        return device;
     }
 }
 
