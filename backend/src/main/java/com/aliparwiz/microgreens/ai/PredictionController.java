@@ -1,12 +1,15 @@
 package com.aliparwiz.microgreens.ai;
 
+import com.aliparwiz.microgreens.ai.dto.AiPredictResponse;
 import com.aliparwiz.microgreens.ai.dto.PredictionRequest;
 import com.aliparwiz.microgreens.ai.dto.PredictionResponse;
 import com.aliparwiz.microgreens.device.Device;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,7 @@ public class PredictionController {
     
     private final PredictionService predictionService;
     private final OpenAiChatService openAiChatService;
+    private final AiPredictService aiPredictService;
 
     @PostMapping("/chat")
     public ResponseEntity<?> chat(@RequestBody ChatRequest request) {
@@ -34,6 +38,20 @@ public class PredictionController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "Failed to generate AI response: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/predict", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> predict(@RequestParam("file") MultipartFile file) {
+        try {
+            AiPredictResponse response = aiPredictService.predict(file);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("message", "Failed to run AI prediction: " + e.getMessage()));
         }
     }
     
