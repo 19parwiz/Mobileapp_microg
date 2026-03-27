@@ -8,7 +8,8 @@ class GeneratePredictionUseCase {
   GeneratePredictionUseCase({required IPredictionRepository predictionRepository})
       : _predictionRepository = predictionRepository;
 
-  Future<PredictionResult> call() => _predictionRepository.generatePrediction();
+  Future<PredictionResult> call(String imagePath) =>
+      _predictionRepository.generatePrediction(imagePath);
 }
 
 

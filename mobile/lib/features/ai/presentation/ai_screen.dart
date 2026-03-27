@@ -303,7 +303,7 @@ class _AIScreenState extends State<AIScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Trained model available soon',
+                  'Use Camera -> Capture & Predict for live model results',
                   style: TextStyle(
                     color: textSecondary,
                     fontWeight: FontWeight.w500,

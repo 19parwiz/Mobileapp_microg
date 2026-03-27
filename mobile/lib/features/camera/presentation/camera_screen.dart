@@ -1,13 +1,17 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../app/di/injector.dart';
 import '../../../app/router/app_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
+import '../../ai/domain/entities/prediction_result.dart';
+import '../../ai/domain/usecases/generate_prediction_use_case.dart';
 import '../domain/models/camera_source.dart';
 import 'widgets/camera_connection_test.dart';
 import 'widgets/mjpeg_viewer.dart';
@@ -40,15 +44,19 @@ class _CameraScreenState extends State<CameraScreen>
 
   CameraSourceType _sourceType = CameraSourceType.device;
   bool _isLoading = true;
+  bool _isPredicting = false;
   String? _errorMessage;
   bool _showDropdown = false;
+  PredictionResult? _predictionResult;
 
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
+  late final GeneratePredictionUseCase _generatePredictionUseCase;
 
   @override
   void initState() {
     super.initState();
+    _generatePredictionUseCase = getIt<GeneratePredictionUseCase>();
 
     _animationController = AnimationController(
       vsync: this,
@@ -315,13 +323,64 @@ class _CameraScreenState extends State<CameraScreen>
 
       try {
         final image = await controller.takePicture();
-        messenger.showSnackBar(
-          SnackBar(content: Text('Photo captured: ${image.path}')),
+        if (!mounted) return;
+
+        setState(() {
+          _isPredicting = true;
+          _predictionResult = null;
+        });
+
+        final result = await _generatePredictionUseCase(image.path);
+        if (!mounted) return;
+
+        setState(() {
+          _predictionResult = result;
+        });
+
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Prediction Result'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Top prediction: ${result.topPrediction ?? 'No result'}'),
+                if (result.predictions.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Detections: ${result.predictions.join(', ')}'),
+                ],
+                const SizedBox(height: 8),
+                Text(result.message),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
+      } on DioException catch (e) {
+        if (!mounted) return;
+        final errorMessage = _formatPredictionError(e);
+        messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
       } catch (e) {
+        if (!mounted) return;
         messenger.showSnackBar(
-          SnackBar(content: Text('Capture failed: $e')),
+          const SnackBar(
+            content: Text(
+              'Capture completed, but prediction failed. Please try again.',
+            ),
+          ),
         );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isPredicting = false;
+          });
+        }
       }
       return;
     }
@@ -668,7 +727,8 @@ class _CameraScreenState extends State<CameraScreen>
     final deviceReady = _sourceType == CameraSourceType.device &&
         _cameraController != null &&
         _cameraController!.value.isInitialized &&
-        !_isLoading;
+        !_isLoading &&
+        !_isPredicting;
 
     final isEnabled = deviceReady || _sourceType == CameraSourceType.labStream;
 
@@ -697,11 +757,22 @@ class _CameraScreenState extends State<CameraScreen>
         ),
         child: ElevatedButton.icon(
           onPressed: isEnabled ? _onCapturePressed : null,
-          icon: const Icon(Icons.camera_alt_rounded),
+          icon: _isPredicting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.camera_alt_rounded),
           label: Text(
-            _sourceType == CameraSourceType.device
-                ? 'CAPTURE PHOTO'
-                : 'SNAPSHOT (SOON)',
+            _isPredicting
+                ? 'PROCESSING...'
+                : _sourceType == CameraSourceType.device
+                    ? 'CAPTURE & PREDICT'
+                    : 'SNAPSHOT (SOON)',
             style: const TextStyle(
               letterSpacing: 0.4,
               fontWeight: FontWeight.w700,
@@ -719,6 +790,71 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPredictionResultCard() {
+    final result = _predictionResult;
+    if (result == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+        AppSizes.paddingL,
+        AppSizes.paddingL,
+        AppSizes.paddingL,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSizes.paddingM),
+      decoration: BoxDecoration(
+        color: isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'AI PREDICTION',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingS),
+          Text(
+            result.topPrediction ?? 'No object detected',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (result.filename != null && result.filename!.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.spacingXS),
+            Text(
+              'Image: ${result.filename}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (result.predictions.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.spacingS),
+            Text(
+              'Detections: ${result.predictions.join(', ')}',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
+          const SizedBox(height: AppSizes.spacingS),
+          Text(
+            result.message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -779,6 +915,28 @@ class _CameraScreenState extends State<CameraScreen>
         ],
       ),
     );
+  }
+
+  String _formatPredictionError(DioException exception) {
+    final responseData = exception.response?.data;
+
+    if (responseData is Map<String, dynamic>) {
+      final message = responseData['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+      final detail = responseData['detail'];
+      if (detail is String && detail.trim().isNotEmpty) {
+        return detail.trim();
+      }
+    }
+
+    if (exception.type == DioExceptionType.connectionError ||
+        exception.type == DioExceptionType.connectionTimeout) {
+      return 'Unable to reach backend. Check backend and AI service are running.';
+    }
+
+    return 'Prediction failed. Please try again.';
   }
 
   Widget _buildLabStreamsSection() {
@@ -885,6 +1043,7 @@ class _CameraScreenState extends State<CameraScreen>
             _buildSourceAndSelectionCard(),
             _buildPreviewCard(),
             _buildCaptureButton(),
+            _buildPredictionResultCard(),
             _buildLabStreamsSection(),
             _buildDeviceCameraSection(),
             const SizedBox(height: AppSizes.spacingXL),

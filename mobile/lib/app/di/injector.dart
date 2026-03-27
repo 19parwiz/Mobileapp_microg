@@ -115,7 +115,7 @@ Future<void> setupDependencyInjection() async {
   );
 
   getIt.registerLazySingleton<IPredictionRepository>(
-    () => PredictionRepositoryImpl(),
+    () => PredictionRepositoryImpl(dio: getIt<Dio>()),
   );
 
   getIt.registerLazySingleton<IAiChatRepository>(

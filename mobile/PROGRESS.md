@@ -1,6 +1,6 @@
 # Mobile App Development Progress
 
-> **Last reviewed:** 2026-03-26 — aligned with the current codebase (`lib/`, DI, and routes).  
+> **Last reviewed:** 2026-03-27 — aligned with the current codebase (`lib/`, DI, and routes).  
 > For setup and high-level features, see also `README.md`.
 
 ---
@@ -15,7 +15,7 @@
 | Devices (API + screens + CRUD) | ✅ Complete |
 | My Plants (API + UI) | ✅ Complete |
 | AI assistant **chat** (HTTP to AI service) | ✅ Complete |
-| AI **prediction** button / model flow | ⚠️ Placeholder only |
+| AI **prediction** button / model flow | ✅ Complete (camera capture -> backend -> ai-service) |
 | Camera (device + lab stream: HLS / MJPEG / WebView fallbacks) | ✅ Advanced; see “Still to do” for save/preview |
 | Responsive layouts (large screens) | ✅ Partial — `ResponsiveConstrained` on key screens |
 | MQTT / WebSocket in app | ❌ Not implemented (config stubs + DI TODOs) |
@@ -65,6 +65,7 @@
 - ✅ **Live data:** `HomeProvider` polls **real** sensor data via `GetRealSensorDataUseCase` → `RealSensorRepositoryImpl` → `SensorApi` (not the old mock-only dashboard path) — 2026-03-25
 - ✅ ListView for dynamic sensor cards, PopScope migration, logging — 2025-12-13
 - ⚠️ Mock sensor stack still registered in DI for `GetSensorDataUseCase` / demos; dashboard uses the **real** path above — 2026-03-25
+- ✅ Reduced duplicate sensor console noise by keeping cleaner `[SENSOR]` runtime messages during polling/load flows — 2026-03-26
 
 ---
 
@@ -86,15 +87,18 @@
 - ✅ Stabilized stream behavior by limiting aggressive auto-reconnect loops and adding init timeout — 2026-03-26
 - ✅ Reduced confusing extra physical camera entries by limiting visible device cameras to primary front/back — 2026-03-26
 - ✅ Improved camera connection test UI: non-2xx HTTP responses (e.g., 404) now show as errors, not success — 2026-03-26
-- [ ] **Still to do:** persist capture to gallery/files, dedicated preview screen, optional AI pipeline on captured image — *(open)*
+- ✅ Camera capture is connected to AI prediction flow (`Capture & Predict`) with result dialog + latest result card — 2026-03-27
+- ✅ Cleaner prediction messages in camera UI (less raw exception text, clearer error wording) — 2026-03-27
+- [ ] **Still to do:** persist capture to gallery/files, dedicated preview screen — *(open)*
 
 ---
 
 ## AI module
 
 - ✅ **Chat:** `AIScreen` + `SendAiChatMessageUseCase` + `AiChatRepositoryImpl` (Dio) with error handling — 2026-03-25
-- ⚠️ **Predictions:** `PredictionRepositoryImpl` still returns a static “coming soon” message; not wired to a real prediction endpoint/model — 2026-03-25
-- [ ] **Still to do:** real prediction API or on-device model; richer prediction UI/visualization — *(open)*
+- ✅ **Predictions:** `PredictionRepositoryImpl` now uploads captured image as multipart (`file`) to backend `/api/ai/predict` and parses live model output — 2026-03-27
+- ✅ AI screen copy updated to point users to Camera prediction flow (removed outdated “available soon” message) — 2026-03-27
+- [ ] **Still to do:** richer prediction history/visualization in AI tab — *(open)*
 
 ---
 
@@ -161,6 +165,10 @@
 
 - [ ] Keep this file and `README.md` TODO sections in sync after major changes (several README bullets are outdated vs code) — *(open)*
 - ✅ Simplified mobile startup script (`run.bat`) for campus/vpn/local flows with cleaner phone handling — 2026-03-26
+- ✅ Simplified mobile console logging:
+  - lighter logger output in `core/utils/logger.dart`
+  - removed `MainScaffold` tab/build debug spam
+  - clearer sensor request / success / error messages — 2026-03-26
 
 ---
 
