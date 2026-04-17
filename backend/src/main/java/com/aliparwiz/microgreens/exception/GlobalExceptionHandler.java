@@ -61,6 +61,38 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerified(
+            EmailNotVerifiedException ex,
+            WebRequest request) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error("Forbidden")
+                .message(ex.getMessage())
+                .errorCode("EMAIL_NOT_VERIFIED")
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+        log.warn("Login blocked (email not verified): {}", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(AccountSuspendedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountSuspended(
+            AccountSuspendedException ex,
+            WebRequest request) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error("Forbidden")
+                .message(ex.getMessage())
+                .errorCode("ACCOUNT_SUSPENDED")
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+        log.warn("Login blocked (suspended account): {}", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
     /**
      * Handle validation exceptions
      */

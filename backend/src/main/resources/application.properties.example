@@ -1,0 +1,38 @@
+# Copy to application.properties and fill in values (application.properties is gitignored).
+
+server.port=8080
+spring.application.name=microgreens-backend
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/microgreens_db
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Almaty
+spring.jackson.time-zone=Asia/Almaty
+
+jwt.secret=CHANGE_ME_MIN_256_BITS
+jwt.expiration=86400000
+
+ai.service.url=http://localhost:8000
+
+# --- Email (optional: omit spring.mail.host to skip sending; useful for local dev) ---
+# SendGrid SMTP example:
+# spring.mail.host=smtp.sendgrid.net
+# spring.mail.port=587
+# spring.mail.username=apikey
+# spring.mail.password=YOUR_SENDGRID_API_KEY
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+#
+# spring.mail.default-encoding=UTF-8
+
+# From header (also used as Reply-To sender identity)
+app.mail.from=Microgreens <noreply@yourdomain.com>
+
+# Base URL of THIS API as seen by the user agent opening the verification link (no trailing slash)
+app.public-api-base-url=http://localhost:8080
+
+# Page or deep link base for "reset password" in email (no trailing slash). Example: Flutter web or marketing site.
+app.password-reset-web-base=http://localhost:3000

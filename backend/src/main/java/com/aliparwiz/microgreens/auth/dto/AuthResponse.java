@@ -21,4 +21,8 @@ public class AuthResponse {
     private String accessToken;
     private Long expiresIn;
     private String message;
+    /** PENDING_VERIFICATION | ACTIVE | SUSPENDED */
+    private String accountStatus;
+    /** Convenience flag for mobile clients */
+    private Boolean emailVerified;
 }

@@ -25,6 +25,9 @@ public class ErrorResponse {
     private String message;
     private String path;
 
+    /** Machine-readable code for clients (e.g. EMAIL_NOT_VERIFIED). */
+    private String errorCode;
+
     @JsonProperty("errors")
     private Map<String, String> validationErrors;
 }

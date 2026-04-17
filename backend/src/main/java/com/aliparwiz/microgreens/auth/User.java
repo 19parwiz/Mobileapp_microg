@@ -16,7 +16,13 @@ import java.util.List;
  * Represents a user account in the system
  */
 @Entity
-@Table(name = "users")
+@Table(
+    name = "users",
+    indexes = {
+        @Index(name = "idx_users_verification_token", columnList = "verification_token", unique = true),
+        @Index(name = "idx_users_reset_password_token", columnList = "reset_password_token")
+    }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -38,7 +44,23 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     private Role role = Role.USER;
-    
+
+    /**
+     * Null means legacy row (treated as ACTIVE for login). New registrations use PENDING_VERIFICATION until verified.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", length = 32)
+    private AccountStatus accountStatus;
+
+    @Column(name = "verification_token", unique = true, length = 64)
+    private String verificationToken;
+
+    @Column(name = "reset_password_token", length = 64)
+    private String resetPasswordToken;
+
+    @Column(name = "reset_password_expiry")
+    private LocalDateTime resetPasswordExpiry;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
     
