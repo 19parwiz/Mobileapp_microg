@@ -11,6 +11,8 @@ import '../../features/device/presentation/add_device_screen.dart';
 import '../../features/device/presentation/edit_device_screen.dart';
 import '../../features/device/presentation/device_detail_screen.dart';
 import '../../features/admin/presentation/admin_panel_screen.dart';
+import '../../features/more/presentation/about_app_screen.dart';
+import '../../features/more/presentation/privacy_terms_screen.dart';
 import '../../core/widgets/main_scaffold.dart';
 import '../../core/widgets/error_page.dart';
 import '../../core/utils/logger.dart';
@@ -21,7 +23,7 @@ import '../../features/auth/domain/usecases/get_token_use_case.dart';
 /// Includes error handling for invalid routes
 class AppRouter {
   // Route paths
-  static const String home = '/home';      
+  static const String home = '/home';
   static const String login = '/login';
   static const String register = '/register';
   static const String profile = '/profile';
@@ -34,6 +36,8 @@ class AppRouter {
   static const String editDevice = '/devices/edit';
   static const String deviceDetail = '/devices/detail';
   static const String admin = '/admin';
+  static const String about = '/about';
+  static const String privacyTerms = '/privacy-terms';
 
   // Route names for navigation
   static const String homeName = 'home';
@@ -49,6 +53,8 @@ class AppRouter {
   static const String editDeviceName = 'editDevice';
   static const String deviceDetailName = 'deviceDetail';
   static const String adminName = 'admin';
+  static const String aboutName = 'about';
+  static const String privacyTermsName = 'privacyTerms';
 
   // List of routes that require authentication
   static const List<String> _protectedRoutes = [
@@ -63,6 +69,8 @@ class AppRouter {
     editDevice,
     deviceDetail,
     admin,
+    about,
+    privacyTerms,
   ];
 
   // List of public (unprotected) routes
@@ -115,7 +123,7 @@ class AppRouter {
         return login;
       }
     },
-    routes: [  
+    routes: [
       GoRoute(
         path: login,
         name: loginName,
@@ -187,6 +195,16 @@ class AppRouter {
         name: adminName,
         builder: (context, state) => const AdminPanelScreen(),
       ),
+      GoRoute(
+        path: about,
+        name: aboutName,
+        builder: (context, state) => const AboutAppScreen(),
+      ),
+      GoRoute(
+        path: privacyTerms,
+        name: privacyTermsName,
+        builder: (context, state) => const PrivacyTermsScreen(),
+      ),
     ],
     errorBuilder: (context, state) {
       // Extract error information
@@ -201,5 +219,3 @@ class AppRouter {
     },
   );
 }
-
-

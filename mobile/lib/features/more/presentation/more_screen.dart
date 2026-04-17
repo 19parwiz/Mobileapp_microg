@@ -38,6 +38,47 @@ class _MoreScreenState extends State<MoreScreen> {
     });
   }
 
+  void _showMoreOptionsSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('About App'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  context.push(AppRouter.about);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('Privacy & Terms'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  context.push(AppRouter.privacyTerms);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings),
+                title: const Text('Settings'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  context.push(AppRouter.settings);
+                },
+              ),
+              const SizedBox(height: AppSizes.spacingM),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -47,14 +88,16 @@ class _MoreScreenState extends State<MoreScreen> {
         final isDark = themeProvider.isDarkMode;
 
         return SafeArea(
-            child: ResponsiveConstrained(
-              child: ListView(
+          child: ResponsiveConstrained(
+            child: ListView(
               padding: const EdgeInsets.all(AppSizes.paddingL),
               children: [
                 ListTile(
                   leading: const Icon(Icons.dark_mode_outlined),
                   title: const Text('Dark Mode'),
-                  subtitle: Text(isDark ? 'Dark theme is enabled' : 'Light theme is enabled'),
+                  subtitle: Text(isDark
+                      ? 'Dark theme is enabled'
+                      : 'Light theme is enabled'),
                   trailing: Switch(
                     value: isDark,
                     activeThumbColor: AppColors.primary,
@@ -68,6 +111,7 @@ class _MoreScreenState extends State<MoreScreen> {
                   leading: const Icon(Icons.account_circle_outlined),
                   title: const Text('Profile & Account'),
                   subtitle: const Text('View and manage your account details'),
+                  trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     context.push(AppRouter.profile);
                   },
@@ -108,11 +152,11 @@ class _MoreScreenState extends State<MoreScreen> {
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text('About App'),
-                  subtitle: const Text('Learn more about your microgreens assistant'),
+                  subtitle:
+                      const Text('Learn more about your microgreens assistant'),
+                  trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('About screen coming soon')),
-                    );
+                    context.push(AppRouter.about);
                   },
                 ),
                 const Divider(),
@@ -120,10 +164,9 @@ class _MoreScreenState extends State<MoreScreen> {
                   leading: const Icon(Icons.privacy_tip_outlined),
                   title: const Text('Privacy & Terms'),
                   subtitle: const Text('Read about data usage and policies'),
+                  trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Privacy details coming soon')),
-                    );
+                    context.push(AppRouter.privacyTerms);
                   },
                 ),
                 const SizedBox(height: AppSizes.spacingL),
@@ -131,9 +174,7 @@ class _MoreScreenState extends State<MoreScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('More options coming soon')),
-                      );
+                      _showMoreOptionsSheet(context);
                     },
                     icon: const Icon(
                       Icons.more_horiz,
@@ -141,17 +182,18 @@ class _MoreScreenState extends State<MoreScreen> {
                     ),
                     label: Text(
                       'More options',
-                      style: textTheme.labelLarge?.copyWith(color: AppColors.primary),
+                      style: textTheme.labelLarge
+                          ?.copyWith(color: AppColors.primary),
                     ),
                   ),
                 ),
               ],
-              ),
             ),
+          ),
         );
       },
     );
-    
+
     // If showAppBar is true (standalone route), wrap in Scaffold with AppBar
     if (widget.showAppBar) {
       return Scaffold(

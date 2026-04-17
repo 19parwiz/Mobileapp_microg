@@ -53,10 +53,12 @@ class ApiConfig {
     try {
       final host = _apiHostOverride.isNotEmpty
           ? _apiHostOverride
-          : _defaultHostForPlatform();
-      return 'http://$host:8080/api';
+          : (_environment.toLowerCase() == 'local'
+              ? _defaultHostForPlatform()
+              : remoteHost);
+      return 'http://$host:8081/api';
     } catch (_) {
-      return 'http://localhost:8080/api';
+      return 'http://localhost:8081/api';
     }
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../domain/user_profile.dart';
 import '../domain/app_settings.dart';
-import '../../auth/domain/usecases/get_token_use_case.dart';
+import '../../auth/domain/usecases/get_current_user_use_case.dart';
 import '../domain/usecases/get_profile_use_case.dart';
 import '../domain/usecases/get_settings_use_case.dart';
 import '../domain/usecases/update_profile_use_case.dart';
@@ -13,7 +13,7 @@ class ProfileProvider extends ChangeNotifier {
   final GetSettingsUseCase _getSettingsUseCase;
   final UpdateProfileUseCase _updateProfileUseCase;
   final UpdateSettingsUseCase _updateSettingsUseCase;
-  final GetTokenUseCase _getTokenUseCase;
+  final GetCurrentUserUseCase _getCurrentUserUseCase;
 
   UserProfile? _profile;
   AppSettings _settings = const AppSettings();
@@ -31,12 +31,12 @@ class ProfileProvider extends ChangeNotifier {
     required GetSettingsUseCase getSettingsUseCase,
     required UpdateProfileUseCase updateProfileUseCase,
     required UpdateSettingsUseCase updateSettingsUseCase,
-    required GetTokenUseCase getTokenUseCase,
+    required GetCurrentUserUseCase getCurrentUserUseCase,
   })  : _getProfileUseCase = getProfileUseCase,
         _getSettingsUseCase = getSettingsUseCase,
         _updateProfileUseCase = updateProfileUseCase,
         _updateSettingsUseCase = updateSettingsUseCase,
-        _getTokenUseCase = getTokenUseCase {
+        _getCurrentUserUseCase = getCurrentUserUseCase {
     _initializeProfile();
   }
 
@@ -46,20 +46,32 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Try to load from profile storage
-      _profile = await _getProfileUseCase();
+      final authUser = await _getCurrentUserUseCase();
+      final storedProfile = await _getProfileUseCase();
 
-      // If no profile, try to create from auth data
-      if (_profile == null) {
-        final userData = await _getTokenUseCase();
-        if (userData != null) {
-          // Create default profile from auth (if available)
-          _profile = const UserProfile(
-            id: '1',
-            email: 'user@example.com',
-            name: 'User',
+      if (authUser != null) {
+        final sameUser = storedProfile != null &&
+            storedProfile.id == authUser.id &&
+            storedProfile.email.toLowerCase() == authUser.email.toLowerCase();
+
+        if (sameUser) {
+          _profile = storedProfile.copyWith(
+            email: authUser.email,
+            name: authUser.name?.trim().isNotEmpty == true
+                ? authUser.name
+                : storedProfile.name,
+          );
+        } else {
+          _profile = UserProfile(
+            id: authUser.id,
+            email: authUser.email,
+            name: authUser.name?.trim().isNotEmpty == true
+                ? authUser.name
+                : authUser.email.split('@').first,
           );
         }
+      } else {
+        _profile = storedProfile;
       }
 
       // Load settings

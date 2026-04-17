@@ -11,8 +11,22 @@ import '../../auth/domain/usecases/logout_use_case.dart';
 import '../domain/usecases/clear_profile_use_case.dart';
 import 'profile_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ProfileProvider>().refreshProfile();
+    });
+  }
 
   Future<void> _handleLogout(BuildContext context) async {
     final confirm = await showDialog<bool>(
@@ -37,12 +51,13 @@ class ProfileScreen extends StatelessWidget {
       try {
         final logoutUseCase = getIt<LogoutUseCase>();
         final clearProfileUseCase = getIt<ClearProfileUseCase>();
-        
+
         await logoutUseCase();
         await clearProfileUseCase();
-        
+        await context.read<ProfileProvider>().refreshProfile();
+
         if (context.mounted) {
-          context.go(AppRouter.home);
+          context.go(AppRouter.login);
         }
       } catch (e) {
         if (context.mounted) {
@@ -79,131 +94,134 @@ class ProfileScreen extends StatelessWidget {
           return SafeArea(
             child: ResponsiveConstrained(
               child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSizes.paddingL),
-              child: Column(
-                children: [
-                  // Avatar section - editable
-                  GestureDetector(
-                    onTap: () {
-                      context.push(AppRouter.editProfile);
-                    },
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: AppColors.primary,
-                          backgroundImage: profile?.avatarUrl != null
-                              ? NetworkImage(profile!.avatarUrl!)
-                              : null,
-                          child: profile?.avatarUrl == null
-                              ? const Icon(
-                                  Icons.person,
-                                  size: 50,
-                                  color: AppColors.textOnPrimary,
-                                )
-                              : null,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              size: 20,
-                              color: AppColors.textOnPrimary,
-                            ),
+                padding: const EdgeInsets.all(AppSizes.paddingL),
+                child: Column(
+                  children: [
+                    // Avatar section - editable
+                    GestureDetector(
+                      onTap: () {
+                        context.push(AppRouter.editProfile);
+                      },
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: AppColors.primary,
+                            backgroundImage: profile?.avatarUrl != null
+                                ? NetworkImage(profile!.avatarUrl!)
+                                : null,
+                            child: profile?.avatarUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: AppColors.textOnPrimary,
+                                  )
+                                : null,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.spacingL),
-                  
-                  // Name - editable
-                  Text(
-                    displayName,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: AppSizes.spacingS),
-                  
-                  // Email - editable
-                  Text(
-                    displayEmail,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                  ),
-                  const SizedBox(height: AppSizes.spacingXL),
-                  
-                  // Action cards with rounded corners
-                  Card(
-                    elevation: 4,
-                    shadowColor: AppColors.primary.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                    ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.paddingL,
-                            vertical: AppSizes.paddingS,
-                          ),
-                          leading: const Icon(Icons.edit),
-                          title: Text(
-                            AppStrings.editProfile,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                size: 20,
+                                color: AppColors.textOnPrimary,
+                              ),
                             ),
                           ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            context.push(AppRouter.editProfile);
-                          },
-                        ),
-                        const Divider(height: 1),
-                        // Settings moved to More screen for cleaner layout
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.spacingXL),
-                  
-                  // Logout button with rounded corners
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleLogout(context),
-                      icon: const Icon(Icons.logout),
-                      label: const Text(
-                        AppStrings.signOut,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.error,
-                        foregroundColor: AppColors.textOnPrimary,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSizes.paddingL,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusXL),
-                        ),
-                        minimumSize: const Size(double.infinity, AppSizes.buttonHeightL),
-                        elevation: 4,
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: AppSizes.spacingL),
+
+                    // Name - editable
+                    Text(
+                      displayName,
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                    ),
+                    const SizedBox(height: AppSizes.spacingS),
+
+                    // Email - editable
+                    Text(
+                      displayEmail,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                    ),
+                    const SizedBox(height: AppSizes.spacingXL),
+
+                    // Action cards with rounded corners
+                    Card(
+                      elevation: 4,
+                      shadowColor: AppColors.primary.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusXL),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.paddingL,
+                              vertical: AppSizes.paddingS,
+                            ),
+                            leading: const Icon(Icons.edit),
+                            title: Text(
+                              AppStrings.editProfile,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              context.push(AppRouter.editProfile);
+                            },
+                          ),
+                          const Divider(height: 1),
+                          // Settings moved to More screen for cleaner layout
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.spacingXL),
+
+                    // Logout button with rounded corners
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _handleLogout(context),
+                        icon: const Icon(Icons.logout),
+                        label: const Text(
+                          AppStrings.signOut,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          foregroundColor: AppColors.textOnPrimary,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSizes.paddingL,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusXL),
+                          ),
+                          minimumSize: const Size(
+                              double.infinity, AppSizes.buttonHeightL),
+                          elevation: 4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

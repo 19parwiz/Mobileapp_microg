@@ -29,7 +29,7 @@ import 'features/profile/domain/usecases/get_profile_use_case.dart';
 import 'features/profile/domain/usecases/get_settings_use_case.dart';
 import 'features/profile/domain/usecases/update_profile_use_case.dart';
 import 'features/profile/domain/usecases/update_settings_use_case.dart';
-import 'features/auth/domain/usecases/get_token_use_case.dart';
+import 'features/auth/domain/usecases/get_current_user_use_case.dart';
 
 // Home / sensors (commented for now)
 // import 'features/home/presentation/home_provider.dart';
@@ -55,7 +55,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-
         /// 🌱 PLANTS PROVIDER (from DI)
         ChangeNotifierProvider<PlantProvider>(
           create: (_) => getIt<PlantProvider>(),
@@ -84,7 +83,7 @@ class MyApp extends StatelessWidget {
             getSettingsUseCase: getIt<GetSettingsUseCase>(),
             updateProfileUseCase: getIt<UpdateProfileUseCase>(),
             updateSettingsUseCase: getIt<UpdateSettingsUseCase>(),
-            getTokenUseCase: getIt<GetTokenUseCase>(),
+            getCurrentUserUseCase: getIt<GetCurrentUserUseCase>(),
           ),
         ),
 
@@ -113,4 +112,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
