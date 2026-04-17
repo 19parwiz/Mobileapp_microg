@@ -7,6 +7,7 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/responsive_constrained.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/di/injector.dart';
+import '../domain/auth_api_exception.dart';
 import '../domain/usecases/login_use_case.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -49,6 +50,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         context.go(AppRouter.home);
       }
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      if (e.errorCode == 'EMAIL_NOT_VERIFIED') {
+        final q = Uri.encodeComponent(_emailController.text.trim());
+        context.push('${AppRouter.verifyEmailPending}?email=$q');
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message),
+          backgroundColor: Colors.red,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -194,7 +208,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSizes.spacingXL),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () => context.push(AppRouter.forgotPassword),
+                                  child: const Text('Forgot password?'),
+                                ),
+                              ),
+                              const SizedBox(height: AppSizes.spacingM),
                               SizedBox(
                                 height: AppSizes.buttonHeightM,
                                 child: ElevatedButton(

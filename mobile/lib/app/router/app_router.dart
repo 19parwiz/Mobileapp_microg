@@ -13,6 +13,9 @@ import '../../features/device/presentation/device_detail_screen.dart';
 import '../../features/admin/presentation/admin_panel_screen.dart';
 import '../../features/more/presentation/about_app_screen.dart';
 import '../../features/more/presentation/privacy_terms_screen.dart';
+import '../../features/auth/presentation/email_verification_pending_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../core/widgets/main_scaffold.dart';
 import '../../core/widgets/error_page.dart';
 import '../../core/utils/logger.dart';
@@ -38,6 +41,9 @@ class AppRouter {
   static const String admin = '/admin';
   static const String about = '/about';
   static const String privacyTerms = '/privacy-terms';
+  static const String verifyEmailPending = '/verify-email-pending';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
 
   // Route names for navigation
   static const String homeName = 'home';
@@ -55,6 +61,9 @@ class AppRouter {
   static const String adminName = 'admin';
   static const String aboutName = 'about';
   static const String privacyTermsName = 'privacyTerms';
+  static const String verifyEmailPendingName = 'verifyEmailPending';
+  static const String forgotPasswordName = 'forgotPassword';
+  static const String resetPasswordName = 'resetPassword';
 
   // List of routes that require authentication
   static const List<String> _protectedRoutes = [
@@ -77,6 +86,9 @@ class AppRouter {
   static const List<String> _publicRoutes = [
     login,
     register,
+    verifyEmailPending,
+    forgotPassword,
+    resetPassword,
   ];
 
   // GoRouter instance with defined router
@@ -94,7 +106,10 @@ class AppRouter {
         // Check if current route is a public route
         final isOnPublicRoute = _publicRoutes.contains(currentPath) ||
             currentPath.startsWith(login) ||
-            currentPath.startsWith(register);
+            currentPath.startsWith(register) ||
+            currentPath.startsWith(verifyEmailPending) ||
+            currentPath.startsWith(forgotPassword) ||
+            currentPath.startsWith(resetPassword);
 
         // SECURITY: If user is NOT logged in
         if (!isLoggedIn) {
@@ -133,6 +148,27 @@ class AppRouter {
         path: register,
         name: registerName,
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: verifyEmailPending,
+        name: verifyEmailPendingName,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return EmailVerificationPendingScreen(email: email);
+        },
+      ),
+      GoRoute(
+        path: forgotPassword,
+        name: forgotPasswordName,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: resetPassword,
+        name: resetPasswordName,
+        builder: (context, state) {
+          final token = state.uri.queryParameters['token'] ?? '';
+          return ResetPasswordScreen(initialToken: token);
+        },
       ),
       GoRoute(
         path: home,

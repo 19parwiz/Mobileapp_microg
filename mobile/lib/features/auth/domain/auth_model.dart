@@ -6,6 +6,9 @@ class AuthModel extends Equatable {
   final String? name;
   final String? token;
   final String? role;
+  final String? message;
+  final String? accountStatus;
+  final bool? emailVerified;
 
   const AuthModel({
     required this.id,
@@ -13,7 +16,12 @@ class AuthModel extends Equatable {
     this.name,
     this.token,
     this.role,
+    this.message,
+    this.accountStatus,
+    this.emailVerified,
   });
+
+  bool get hasUsableToken => token != null && token!.isNotEmpty;
 
   factory AuthModel.fromJson(Map<String, dynamic> json) {
     return AuthModel(
@@ -22,6 +30,9 @@ class AuthModel extends Equatable {
       name: json['name'],
       token: json['token'] ?? json['accessToken'],
       role: json['role'],
+      message: json['message']?.toString(),
+      accountStatus: json['accountStatus']?.toString(),
+      emailVerified: json['emailVerified'] is bool ? json['emailVerified'] as bool : null,
     );
   }
 
@@ -32,6 +43,9 @@ class AuthModel extends Equatable {
       'name': name,
       'token': token,
       'role': role,
+      if (message != null) 'message': message,
+      if (accountStatus != null) 'accountStatus': accountStatus,
+      if (emailVerified != null) 'emailVerified': emailVerified,
     };
   }
 
@@ -41,6 +55,9 @@ class AuthModel extends Equatable {
     String? name,
     String? token,
     String? role,
+    String? message,
+    String? accountStatus,
+    bool? emailVerified,
   }) {
     return AuthModel(
       id: id ?? this.id,
@@ -48,10 +65,14 @@ class AuthModel extends Equatable {
       name: name ?? this.name,
       token: token ?? this.token,
       role: role ?? this.role,
+      message: message ?? this.message,
+      accountStatus: accountStatus ?? this.accountStatus,
+      emailVerified: emailVerified ?? this.emailVerified,
     );
   }
 
   @override
-  List<Object?> get props => [id, email, name, token, role];
+  List<Object?> get props =>
+      [id, email, name, token, role, message, accountStatus, emailVerified];
 }
 

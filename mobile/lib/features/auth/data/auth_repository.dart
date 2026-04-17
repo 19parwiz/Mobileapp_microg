@@ -39,13 +39,16 @@ class AuthRepository implements IAuthRepository {
   Future<AuthModel> register(String email, String password, String? name) async {
     try {
       final authModel = await _authApi.register(email, password, name);
-      
-      // Store user data
-      await _secureStorage.write(
-        key: AppConfig.userKey,
-        value: jsonEncode(authModel.toJson()),
-      );
-      
+
+      if (authModel.hasUsableToken) {
+        await _secureStorage.write(
+          key: AppConfig.userKey,
+          value: jsonEncode(authModel.toJson()),
+        );
+      } else {
+        await _secureStorage.delete(key: AppConfig.userKey);
+      }
+
       AppLogger.i('User registered successfully');
       return authModel;
     } catch (e) {
@@ -53,6 +56,20 @@ class AuthRepository implements IAuthRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<void> forgotPassword(String email) => _authApi.forgotPassword(email);
+
+  @override
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) =>
+      _authApi.resetPassword(token: token, newPassword: newPassword);
+
+  @override
+  Future<void> resendVerification(String email) =>
+      _authApi.resendVerification(email);
 
   @override
   Future<void> logout() async {

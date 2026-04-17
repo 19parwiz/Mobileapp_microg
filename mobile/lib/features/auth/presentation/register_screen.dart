@@ -56,7 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final registerUseCase = getIt<RegisterUseCase>();
-      await registerUseCase(
+      final auth = await registerUseCase(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         name: _nameController.text.trim().isEmpty
@@ -64,7 +64,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             : _nameController.text.trim(),
       );
 
-      if (mounted) {
+      if (!mounted) return;
+      if (!auth.hasUsableToken) {
+        final q = Uri.encodeComponent(_emailController.text.trim());
+        context.go('${AppRouter.verifyEmailPending}?email=$q');
+      } else {
         context.go(AppRouter.home);
       }
     } catch (e) {
