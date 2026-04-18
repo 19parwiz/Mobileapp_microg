@@ -1,4 +1,4 @@
-# Copy to application.properties (gitignored) or set env vars — see comments below.
+# Defaults live in application.properties (tracked). Copy this file to application-local.properties for machine-only overrides.
 
 # Cloud hosts inject PORT; keep default 8080 for local Maven runs.
 server.port=${PORT:8080}
@@ -9,7 +9,7 @@ spring.application.name=microgreens-backend
 #   DATABASE_USERNAME=postgres
 #   DATABASE_PASSWORD=<your PostgreSQL role password; default in application.properties is postgres>
 # Docker Compose (microgreens_db / postgres): set DATABASE_URL=jdbc:postgresql://localhost:5432/microgreens_db and DATABASE_PASSWORD=postgres
-spring.datasource.url=${DATABASE_URL:jdbc:postgresql://localhost:5432/smart_microgreens_db}
+spring.datasource.url=${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/smart_microgreens_db}}
 spring.datasource.username=${DATABASE_USERNAME:postgres}
 spring.datasource.password=${DATABASE_PASSWORD:postgres}
 spring.datasource.driver-class-name=org.postgresql.Driver
