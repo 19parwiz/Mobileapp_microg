@@ -1,0 +1,10 @@
+#  docker build uses backend/ as context when Root Directory = backend.
+
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.iml
+.idea/
+.vscode/
+*.log
+.git
+.gitignore
