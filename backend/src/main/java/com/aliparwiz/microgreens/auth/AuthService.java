@@ -5,8 +5,11 @@ import com.aliparwiz.microgreens.auth.dto.LoginRequest;
 import com.aliparwiz.microgreens.auth.dto.RegisterRequest;
 import com.aliparwiz.microgreens.auth.dto.ResendVerificationRequest;
 import com.aliparwiz.microgreens.auth.dto.ResetPasswordRequest;
+import com.aliparwiz.microgreens.auth.dto.UpdateProfileRequest;
+import com.aliparwiz.microgreens.auth.dto.UserProfileResponse;
 import com.aliparwiz.microgreens.exception.AccountSuspendedException;
 import com.aliparwiz.microgreens.exception.EmailNotVerifiedException;
+import com.aliparwiz.microgreens.exception.ResourceNotFoundException;
 import com.aliparwiz.microgreens.exception.ValidationException;
 import com.aliparwiz.microgreens.mail.EmailService;
 import com.aliparwiz.microgreens.security.JwtTokenProvider;
@@ -122,6 +125,44 @@ public class AuthService {
     public Map<String, String> logout(String email) {
         log.info("[AUTH] User logged out: {}", email);
         return Map.of("message", "Logged out successfully");
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getCurrentProfile(Long userId) {
+        User user = authRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return toUserProfileResponse(user);
+    }
+
+    @Transactional
+    public UserProfileResponse updateCurrentProfile(Long userId, UpdateProfileRequest request) {
+        User user = authRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        String newEmail = request.getEmail().trim();
+        if (!newEmail.equalsIgnoreCase(user.getEmail()) && authRepository.existsByEmail(newEmail)) {
+            throw new ValidationException("Email already in use");
+        }
+
+        user.setName(request.getName().trim());
+        user.setEmail(newEmail);
+        user.setUpdatedAt(LocalDateTime.now());
+        authRepository.save(user);
+        log.info("[AUTH] Profile updated for user id={}", userId);
+        return toUserProfileResponse(user);
+    }
+
+    private UserProfileResponse toUserProfileResponse(User user) {
+        AccountStatus status = effectiveStatus(user);
+        return UserProfileResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .name(user.getName())
+            .role(user.getRole().name())
+            .accountStatus(status.name())
+            .createdAt(user.getCreatedAt())
+            .updatedAt(user.getUpdatedAt())
+            .build();
     }
 
     @Transactional

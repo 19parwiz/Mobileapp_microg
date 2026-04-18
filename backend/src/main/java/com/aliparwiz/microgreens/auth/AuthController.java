@@ -6,6 +6,10 @@ import com.aliparwiz.microgreens.auth.dto.LoginRequest;
 import com.aliparwiz.microgreens.auth.dto.RegisterRequest;
 import com.aliparwiz.microgreens.auth.dto.ResendVerificationRequest;
 import com.aliparwiz.microgreens.auth.dto.ResetPasswordRequest;
+import com.aliparwiz.microgreens.auth.dto.UpdateProfileRequest;
+import com.aliparwiz.microgreens.auth.dto.UserProfileResponse;
+import com.aliparwiz.microgreens.security.JwtTokenProvider;
+import com.aliparwiz.microgreens.security.SecurityContextUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +28,20 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUser() {
+        Long userId = SecurityContextUtils.requireCurrentUserId();
+        return ResponseEntity.ok(authService.getCurrentProfile(userId));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateCurrentUser(
+        @Valid @RequestBody UpdateProfileRequest request) {
+        Long userId = SecurityContextUtils.requireCurrentUserId();
+        return ResponseEntity.ok(authService.updateCurrentProfile(userId, request));
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -70,8 +88,19 @@ public class AuthController {
     }
 
     private String extractEmailFromToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return "user";
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return "unknown";
+        }
+        String token = authHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            return "unknown";
+        }
+        try {
+            if (jwtTokenProvider.validateToken(token)) {
+                return jwtTokenProvider.getEmailFromToken(token);
+            }
+        } catch (Exception ignored) {
+            // fall through
         }
         return "unknown";
     }

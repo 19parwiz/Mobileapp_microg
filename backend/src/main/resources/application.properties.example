@@ -1,21 +1,28 @@
-# Copy to application.properties and fill in values (application.properties is gitignored).
+# Copy to application.properties (gitignored) or set env vars — see comments below.
 
-server.port=8080
+# Cloud hosts inject PORT; keep default 8080 for local Maven runs.
+server.port=${PORT:8080}
 spring.application.name=microgreens-backend
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/microgreens_db
-spring.datasource.username=postgres
-spring.datasource.password=postgres
+# Prefer env vars so you never commit passwords:
+#   DATABASE_URL=jdbc:postgresql://localhost:5432/smart_microgreens_db
+#   DATABASE_USERNAME=postgres
+#   DATABASE_PASSWORD=<your PostgreSQL role password; default in application.properties is 54321>
+# Docker Compose (microgreens_db / postgres): set DATABASE_URL=jdbc:postgresql://localhost:5432/microgreens_db and DATABASE_PASSWORD=postgres
+spring.datasource.url=${DATABASE_URL:jdbc:postgresql://localhost:5432/smart_microgreens_db}
+spring.datasource.username=${DATABASE_USERNAME:postgres}
+spring.datasource.password=${DATABASE_PASSWORD:54321}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Almaty
 spring.jackson.time-zone=Asia/Almaty
 
-jwt.secret=CHANGE_ME_MIN_256_BITS
+# Base64-encoded key (32+ raw bytes). Generate: [Convert]::ToBase64String((1..32|%{Get-Random -Max 256}))
+jwt.secret=${JWT_SECRET:MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=}
 jwt.expiration=86400000
 
-ai.service.url=http://localhost:8000
+ai.service.url=${AI_SERVICE_URL:http://localhost:8000}
 
 # --- Email (optional: omit spring.mail.host to skip sending; useful for local dev) ---
 # SendGrid SMTP example:
@@ -31,8 +38,8 @@ ai.service.url=http://localhost:8000
 # From header (also used as Reply-To sender identity)
 app.mail.from=Microgreens <noreply@yourdomain.com>
 
-# Base URL of THIS API as seen by the user agent opening the verification link (no trailing slash)
-app.public-api-base-url=http://localhost:8080
+# Base URL of THIS API for email verification links (no trailing slash). Railway: https://… .up.railway.app
+app.public-api-base-url=${APP_PUBLIC_API_BASE_URL:http://localhost:8080}
 
-# Page or deep link base for "reset password" in email (no trailing slash). Example: Flutter web or marketing site.
-app.password-reset-web-base=http://localhost:3000
+# Reset-password link base for email (no trailing slash).
+app.password-reset-web-base=${APP_PASSWORD_RESET_WEB_BASE:http://localhost:3000}

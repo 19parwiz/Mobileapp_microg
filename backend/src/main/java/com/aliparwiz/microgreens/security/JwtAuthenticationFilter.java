@@ -1,6 +1,5 @@
 package com.aliparwiz.microgreens.security;
 
-import com.aliparwiz.microgreens.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -81,9 +80,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        // Skip JWT filter for auth endpoints
-        return path.startsWith("/api/auth/") || 
-               path.startsWith("/api/health") ||
-               path.equals("/api/info");
+        if (path.startsWith("/api/health") || path.equals("/api/info")) {
+            return true;
+        }
+        if (!path.startsWith("/api/auth/")) {
+            return false;
+        }
+        return path.equals("/api/auth/register")
+            || path.equals("/api/auth/login")
+            || path.equals("/api/auth/logout")
+            || path.equals("/api/auth/verify")
+            || path.equals("/api/auth/forgot-password")
+            || path.equals("/api/auth/reset-password")
+            || path.equals("/api/auth/resend-verification");
     }
 }

@@ -16,15 +16,17 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache wget
+
 # Copy the built JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose port
+# Default; Railway overrides with PORT at runtime
 EXPOSE 8080
 
-# Health check
+# Health check (uses PORT when Railway sets it; shell form so env expands)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
+  CMD sh -c 'wget -q -O /dev/null "http://127.0.0.1:$${PORT:-8080}/api/health" || exit 1'
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
