@@ -19,10 +19,11 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
+    /** Base64-encoded key; override JWT_SECRET in production. */
+    @Value("${jwt.secret:MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:86400000}")
     private long jwtExpirationMs;
 
     private SecretKey getSigningKey() {

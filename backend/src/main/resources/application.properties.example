@@ -7,11 +7,11 @@ spring.application.name=microgreens-backend
 # Prefer env vars so you never commit passwords:
 #   DATABASE_URL=jdbc:postgresql://localhost:5432/smart_microgreens_db
 #   DATABASE_USERNAME=postgres
-#   DATABASE_PASSWORD=<your PostgreSQL role password; default in application.properties is 54321>
+#   DATABASE_PASSWORD=<your PostgreSQL role password; default in application.properties is postgres>
 # Docker Compose (microgreens_db / postgres): set DATABASE_URL=jdbc:postgresql://localhost:5432/microgreens_db and DATABASE_PASSWORD=postgres
 spring.datasource.url=${DATABASE_URL:jdbc:postgresql://localhost:5432/smart_microgreens_db}
 spring.datasource.username=${DATABASE_USERNAME:postgres}
-spring.datasource.password=${DATABASE_PASSWORD:54321}
+spring.datasource.password=${DATABASE_PASSWORD:postgres}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 spring.jpa.hibernate.ddl-auto=update

@@ -1,4 +1,4 @@
-#  docker build uses backend/ as context when Root Directory = backend.
+# Keep build context small — Railway / docker build uses backend/ as context when Root Directory = backend.
 
 target/
 .mvn/wrapper/maven-wrapper.jar
