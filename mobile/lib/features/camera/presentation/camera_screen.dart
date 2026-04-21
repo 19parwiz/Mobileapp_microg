@@ -27,7 +27,7 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const Duration _hlsInitTimeout = Duration(seconds: 6);
   static const int _maxHlsAutoRetries = 2;
 
@@ -45,12 +45,15 @@ class _CameraScreenState extends State<CameraScreen>
   CameraSourceType _sourceType = CameraSourceType.device;
   bool _isLoading = true;
   bool _isPredicting = false;
+  bool _isScanning = false;
   String? _errorMessage;
   bool _showDropdown = false;
   PredictionResult? _predictionResult;
+  int _scanDurationSeconds = 2;
 
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
+  late final AnimationController _scanController;
   late final GeneratePredictionUseCase _generatePredictionUseCase;
 
   @override
@@ -66,6 +69,10 @@ class _CameraScreenState extends State<CameraScreen>
     _fadeAnimation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeInOut,
+    );
+    _scanController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: _scanDurationSeconds),
     );
 
     _initCameras();
@@ -321,47 +328,22 @@ class _CameraScreenState extends State<CameraScreen>
         return;
       }
 
+      if (_isScanning || _isPredicting) return;
+
+      // Give the user a short guided window before we shoot.
+      setState(() {
+        _isScanning = true;
+        _predictionResult = null;
+      });
+
+      _scanController
+        ..duration = Duration(seconds: _scanDurationSeconds)
+        ..reset();
+
       try {
-        final image = await controller.takePicture();
+        await _scanController.forward();
         if (!mounted) return;
-
-        setState(() {
-          _isPredicting = true;
-          _predictionResult = null;
-        });
-
-        final result = await _generatePredictionUseCase(image.path);
-        if (!mounted) return;
-
-        setState(() {
-          _predictionResult = result;
-        });
-
-        await showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Prediction Result'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Top prediction: ${result.topPrediction ?? 'No result'}'),
-                if (result.predictions.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text('Detections: ${result.predictions.join(', ')}'),
-                ],
-                const SizedBox(height: 8),
-                Text(result.message),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
+        await _captureAndPredict();
       } on DioException catch (e) {
         if (!mounted) return;
         final errorMessage = _formatPredictionError(e);
@@ -378,6 +360,7 @@ class _CameraScreenState extends State<CameraScreen>
       } finally {
         if (mounted) {
           setState(() {
+            _isScanning = false;
             _isPredicting = false;
           });
         }
@@ -387,6 +370,54 @@ class _CameraScreenState extends State<CameraScreen>
 
     messenger.showSnackBar(
       const SnackBar(content: Text('Stream snapshot will be available soon.')),
+    );
+  }
+
+  Future<void> _captureAndPredict() async {
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) {
+      throw StateError('Camera is not ready yet.');
+    }
+
+    final image = await controller.takePicture();
+    if (!mounted) return;
+
+    setState(() {
+      _isPredicting = true;
+      _predictionResult = null;
+    });
+
+    final result = await _generatePredictionUseCase(image.path);
+    if (!mounted) return;
+
+    setState(() {
+      _predictionResult = result;
+    });
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Prediction Result'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Top prediction: ${result.topPrediction ?? 'No result'}'),
+            if (result.predictions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Detections: ${result.predictions.join(', ')}'),
+            ],
+            const SizedBox(height: 8),
+            Text(result.message),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -450,7 +481,13 @@ class _CameraScreenState extends State<CameraScreen>
         opacity: _fadeAnimation,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: CameraPreview(controller),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CameraPreview(controller),
+              if (_isScanning) _buildScanOverlay(),
+            ],
+          ),
         ),
       );
     }
@@ -757,7 +794,7 @@ class _CameraScreenState extends State<CameraScreen>
         ),
         child: ElevatedButton.icon(
           onPressed: isEnabled ? _onCapturePressed : null,
-          icon: _isPredicting
+          icon: (_isPredicting || _isScanning)
               ? const SizedBox(
                   width: 18,
                   height: 18,
@@ -768,8 +805,10 @@ class _CameraScreenState extends State<CameraScreen>
                 )
               : const Icon(Icons.camera_alt_rounded),
           label: Text(
-            _isPredicting
-                ? 'PROCESSING...'
+            _isScanning
+                ? 'SCANNING ${_scanDurationSeconds}s...'
+                : _isPredicting
+                    ? 'PROCESSING...'
                 : _sourceType == CameraSourceType.device
                     ? 'CAPTURE & PREDICT'
                     : 'SNAPSHOT (SOON)',
@@ -790,6 +829,104 @@ class _CameraScreenState extends State<CameraScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildScanOverlay() {
+    return AnimatedBuilder(
+      animation: _scanController,
+      builder: (context, child) {
+        final progress = _scanController.value;
+        final remaining = ((_scanDurationSeconds * (1 - progress)).ceil()).clamp(0, _scanDurationSeconds);
+        final y = -1.0 + (2.0 * progress);
+
+        return Container(
+          color: Colors.black.withValues(alpha: 0.18),
+          child: Stack(
+            children: [
+              Center(
+                child: Container(
+                  width: 230,
+                  height: 230,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment(0, y),
+                child: Container(
+                  width: 230,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.greenAccent.withValues(alpha: 0.25),
+                        Colors.transparent,
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      height: 4,
+                      width: double.infinity,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 18,
+                left: 0,
+                right: 0,
+                child: Text(
+                  'Hold steady... ${remaining}s',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildScanDurationSelector() {
+    final options = [1, 2, 3];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.paddingL,
+        AppSizes.paddingM,
+        AppSizes.paddingL,
+        0,
+      ),
+      child: Wrap(
+        spacing: AppSizes.spacingS,
+        children: options.map((seconds) {
+          final selected = _scanDurationSeconds == seconds;
+          return ChoiceChip(
+            label: Text('${seconds}s capture'),
+            selected: selected,
+            onSelected: _isPredicting || _isScanning
+                ? null
+                : (_) {
+                    setState(() {
+                      _scanDurationSeconds = seconds;
+                    });
+                  },
+          );
+        }).toList(),
       ),
     );
   }
@@ -1043,6 +1180,7 @@ class _CameraScreenState extends State<CameraScreen>
             _buildSourceAndSelectionCard(),
             _buildPreviewCard(),
             _buildCaptureButton(),
+            _buildScanDurationSelector(),
             _buildPredictionResultCard(),
             _buildLabStreamsSection(),
             _buildDeviceCameraSection(),
@@ -1080,6 +1218,7 @@ class _CameraScreenState extends State<CameraScreen>
   void dispose() {
     _hlsRetryTimer?.cancel();
     _animationController.dispose();
+    _scanController.dispose();
     _cameraController?.dispose();
     _videoController?.dispose();
     super.dispose();
