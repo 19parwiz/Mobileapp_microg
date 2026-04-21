@@ -37,6 +37,8 @@ ai.service.url=${AI_SERVICE_URL:http://localhost:8000}
 
 # From header (also used as Reply-To sender identity)
 app.mail.from=Microgreens <noreply@yourdomain.com>
+# Fail registration/reset flows if SMTP is unavailable (recommended for production).
+app.mail.fail-on-delivery-error=${APP_MAIL_FAIL_ON_DELIVERY_ERROR:true}
 
 # Base URL of THIS API for email verification links (no trailing slash). Railway: https://… .up.railway.app
 app.public-api-base-url=${APP_PUBLIC_API_BASE_URL:http://localhost:8080}

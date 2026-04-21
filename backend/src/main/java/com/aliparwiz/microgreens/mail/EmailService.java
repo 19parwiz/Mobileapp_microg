@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * Sends transactional email when {@link JavaMailSender} is configured ({@code spring.mail.host} set).
@@ -30,6 +31,9 @@ public class EmailService {
 
     @Value("${app.password-reset-web-base:http://localhost:3000}")
     private String passwordResetWebBase;
+
+    @Value("${app.mail.fail-on-delivery-error:true}")
+    private boolean failOnDeliveryError;
 
     public void sendVerificationEmail(String toEmail, String token) {
         String link = publicApiBaseUrl.replaceAll("/$", "") + "/api/auth/verify?token=" + token;
@@ -61,7 +65,13 @@ public class EmailService {
     private void sendHtml(String to, String subject, String htmlBody) {
         JavaMailSender sender = mailSenderProvider.getIfAvailable();
         if (sender == null) {
-            log.warn("[MAIL] JavaMailSender not configured (set spring.mail.host); skipping email to {}", to);
+            String message =
+                "Email sender is not configured. Set spring.mail.host and related SMTP properties.";
+            if (failOnDeliveryError) {
+                log.error("[MAIL] {} Cannot send '{}' to {}", message, subject, to);
+                throw new IllegalStateException(message);
+            }
+            log.warn("[MAIL] {} Skipping '{}' to {}", message, subject, to);
             return;
         }
         try {
@@ -71,15 +81,17 @@ public class EmailService {
                 MimeMessageHelper.MULTIPART_MODE_NO,
                 StandardCharsets.UTF_8.name()
             );
-            helper.setFrom(fromAddress);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
+            helper.setFrom(Objects.requireNonNull(fromAddress, "From address is required"));
+            helper.setTo(Objects.requireNonNull(to, "Recipient email is required"));
+            helper.setSubject(Objects.requireNonNull(subject, "Subject is required"));
+            helper.setText(Objects.requireNonNull(htmlBody, "Email body is required"), true);
             sender.send(message);
             log.info("[MAIL] Sent '{}' to {}", subject, to);
-        } catch (MessagingException e) {
+        } catch (MessagingException | RuntimeException e) {
             log.error("[MAIL] Failed to send '{}' to {}", subject, to, e);
-            throw new IllegalStateException("Failed to send email", e);
+            if (failOnDeliveryError) {
+                throw new IllegalStateException("Failed to send email", e);
+            }
         }
     }
 }
