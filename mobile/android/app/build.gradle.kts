@@ -8,8 +8,8 @@ plugins {
 android {
     namespace = "com.example.diploma_mobile_app"
     compileSdk = flutter.compileSdkVersion
-    // This project does not require NDK/C++ builds. Avoid forcing an NDK lookup/pin.
-    // If a future plugin adds a true native (C/C++) build, reintroduce ndkVersion then.
+    // Some Flutter plugins require this NDK version during Android builds.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

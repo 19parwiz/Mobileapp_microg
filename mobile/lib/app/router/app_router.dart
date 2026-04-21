@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/settings_screen.dart';
+import '../../features/profile/presentation/premium_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/camera/presentation/camera_screen.dart';
@@ -33,6 +34,7 @@ class AppRouter {
   static const String editProfile = '/profile/edit';
   static const String settings = '/profile/settings';
   static const String camera = '/camera';
+  static const String premium = '/premium';
   static const String ai = '/ai';
   static const String devices = '/devices';
   static const String addDevice = '/devices/add';
@@ -53,6 +55,7 @@ class AppRouter {
   static const String editProfileName = 'editProfile';
   static const String settingsName = 'settings';
   static const String cameraName = 'camera';
+  static const String premiumName = 'premium';
   static const String aiName = 'ai';
   static const String devicesName = 'devices';
   static const String addDeviceName = 'addDevice';
@@ -71,6 +74,7 @@ class AppRouter {
     profile,
     editProfile,
     settings,
+    premium,
     camera,
     ai,
     devices,
@@ -189,6 +193,11 @@ class AppRouter {
         path: settings,
         name: settingsName,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: premium,
+        name: premiumName,
+        builder: (context, state) => const PremiumScreen(),
       ),
       GoRoute(
         path: camera,

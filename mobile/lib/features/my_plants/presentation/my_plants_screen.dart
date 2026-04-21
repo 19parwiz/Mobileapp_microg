@@ -22,6 +22,7 @@ class MyPlantsScreen extends StatefulWidget {
 
 class _MyPlantsScreenState extends State<MyPlantsScreen> {
   bool _hasInitialized = false;
+  String _searchQuery = '';
 
   Future<void> _showAddPlantDialog(BuildContext context, PlantProvider provider) async {
     final result = await showDialog<Plant>(
@@ -154,6 +155,16 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
 
   Widget _buildContent(BuildContext context, PlantProvider provider) {
     final theme = Theme.of(context);
+    final allPlants = provider.plants;
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredPlants = query.isEmpty
+        ? allPlants
+        : allPlants.where((plant) {
+            final name = plant.name.toLowerCase();
+            final type = plant.type.toLowerCase();
+            return name.contains(query) ||
+                type.contains(query);
+          }).toList();
 
     if (provider.isLoading) {
       return const Center(child: AppLoading());
@@ -195,7 +206,7 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
       );
     }
 
-    if (provider.plants.isEmpty) {
+    if (allPlants.isEmpty) {
       return _buildEmptyState(context, provider);
     }
 
@@ -252,12 +263,55 @@ class _MyPlantsScreenState extends State<MyPlantsScreen> {
             ),
           ),
           const SizedBox(height: AppSizes.spacingL),
+          TextField(
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+            decoration: InputDecoration(
+              hintText: 'Search plants',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                    ),
+              filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusL),
+                borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusL),
+                borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingM),
+          if (filteredPlants.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(AppSizes.paddingM),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              ),
+              child: const Text('No plants match your search.'),
+            ),
+          if (filteredPlants.isNotEmpty) ...[
 
-          ...provider.plants.map((plant) => PlantCard(
+          ...filteredPlants.map((plant) => PlantCard(
                 plant: plant,
                 onEdit: () => _showEditPlantDialog(context, provider, plant),
                 onDelete: () => _showDeleteConfirmation(context, provider, plant),
               )),
+          ],
 
           // Intentionally no AI section here by request.
           const SizedBox(height: AppSizes.spacingXL * 2),

@@ -15,6 +15,8 @@ class DeviceListScreen extends StatefulWidget {
 }
 
 class _DeviceListScreenState extends State<DeviceListScreen> {
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +84,20 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
         ),
         child: Consumer<DeviceProvider>(
           builder: (context, provider, child) {
+            final query = _searchQuery.trim().toLowerCase();
+            final filteredDevices = query.isEmpty
+                ? provider.devices
+                : provider.devices.where((device) {
+                    final name = device.name.toLowerCase();
+                    final id = (device.deviceId ?? '').toLowerCase();
+                    final type = (device.deviceType ?? '').toLowerCase();
+                    final location = (device.location ?? '').toLowerCase();
+                    return name.contains(query) ||
+                        id.contains(query) ||
+                        type.contains(query) ||
+                        location.contains(query);
+                  }).toList();
+
             if (provider.isLoading && provider.devices.isEmpty) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -161,18 +177,59 @@ class _DeviceListScreenState extends State<DeviceListScreen> {
 
             return RefreshIndicator(
               onRefresh: provider.loadDevices,
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.all(AppSizes.paddingL),
-                itemCount: provider.devices.length,
-                itemBuilder: (context, index) {
-                  final device = provider.devices[index];
-                  return _DeviceCard(
-                    device: device,
-                    onTap: () => context.push('${AppRouter.deviceDetail}/${device.id}'),
-                    onEdit: () => context.push('${AppRouter.editDevice}/${device.id}'),
-                    onDelete: () => _showDeleteDialog(context, provider, device),
-                  );
-                },
+                children: [
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search devices',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                            ),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusL),
+                        borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusL),
+                        borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.spacingM),
+                  if (filteredDevices.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(AppSizes.paddingM),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                      ),
+                      child: const Text('No devices match your search.'),
+                    ),
+                  ...filteredDevices.map(
+                    (device) => _DeviceCard(
+                      device: device,
+                      onTap: () => context.push('${AppRouter.deviceDetail}/${device.id}'),
+                      onEdit: () => context.push('${AppRouter.editDevice}/${device.id}'),
+                      onDelete: () => _showDeleteDialog(context, provider, device),
+                    ),
+                  ),
+                ],
               ),
             );
           },

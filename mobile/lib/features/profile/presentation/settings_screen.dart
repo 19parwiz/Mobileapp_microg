@@ -8,6 +8,8 @@ import '../../../core/l10n/localization_provider.dart';
 import '../../../core/l10n/app_localization.dart';
 import '../../../core/widgets/responsive_constrained.dart';
 import 'profile_provider.dart';
+import '../../../app/router/app_router.dart';
+import 'package:go_router/go_router.dart';
 
 /// Settings screen with language support for English, Farsi, Kazakh, and Russian
 /// 
@@ -119,6 +121,63 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: AppSizes.spacingXL),
+                Text(
+                  'Premium',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                ),
+                const SizedBox(height: AppSizes.spacingM),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSizes.paddingM),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.workspace_premium, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: AppSizes.spacingM),
+                            Expanded(
+                              child: Text(
+                                'Unlock Premium',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizes.spacingM),
+                        Text(
+                          'Get advanced disease detection, richer plant insights, and priority support.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: AppSizes.spacingM),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            context.push(AppRouter.premium);
+                          },
+                          icon: const Icon(Icons.stars),
+                          label: const Text('View Premium Plans'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSizes.spacingXL),
