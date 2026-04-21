@@ -83,6 +83,13 @@ public class DeviceService {
     public DeviceResponse getDeviceByDeviceId(String deviceId) {
         Device device = deviceRepository.findByDeviceId(deviceId)
             .orElseThrow(() -> new RuntimeException("Device not found"));
+
+        if (!isCurrentUserAdmin()) {
+            Long userId = getCurrentUserId();
+            if (userId == null || device.getOwner() == null || !device.getOwner().getId().equals(userId)) {
+                throw new RuntimeException("Access denied: This device does not belong to you");
+            }
+        }
         return toResponse(device);
     }
     

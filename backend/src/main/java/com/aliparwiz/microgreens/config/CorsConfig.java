@@ -2,10 +2,13 @@ package com.aliparwiz.microgreens.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -16,16 +19,22 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    @Value("${app.cors.allowed-origins:}")
+    private String allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "http://10.0.2.2:*",
-            "https://*.up.railway.app",
-            "https://*.railway.app"
-        ));
+        List<String> origins = new ArrayList<>();
+        if (StringUtils.hasText(allowedOrigins)) {
+            for (String origin : allowedOrigins.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    origins.add(trimmed);
+                }
+            }
+        }
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

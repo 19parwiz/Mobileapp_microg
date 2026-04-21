@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,21 @@ public class JwtTokenProvider {
 
     @Value("${jwt.expiration:86400000}")
     private long jwtExpirationMs;
+
+    @PostConstruct
+    public void validateConfiguration() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("JWT secret is not configured. Set JWT_SECRET environment variable.");
+        }
+        try {
+            byte[] decoded = Decoders.BASE64.decode(jwtSecret);
+            if (decoded.length < 32) {
+                throw new IllegalStateException("JWT secret must decode to at least 32 bytes.");
+            }
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalStateException("JWT secret must be valid Base64.", ex);
+        }
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
