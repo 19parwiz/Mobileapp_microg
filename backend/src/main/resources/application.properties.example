@@ -3,6 +3,7 @@
 # Cloud hosts inject PORT; keep default 8080 for local Maven runs.
 server.port=${PORT:8080}
 spring.application.name=microgreens-backend
+app.auth.require-email-verification=${APP_AUTH_REQUIRE_EMAIL_VERIFICATION:false}
 
 # Prefer env vars so you never commit passwords:
 #   DATABASE_URL=jdbc:postgresql://localhost:5432/smart_microgreens_db

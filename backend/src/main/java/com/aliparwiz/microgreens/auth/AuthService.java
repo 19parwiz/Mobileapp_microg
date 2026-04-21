@@ -16,6 +16,7 @@ import com.aliparwiz.microgreens.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,9 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
 
+    @Value("${app.auth.require-email-verification:false}")
+    private boolean requireEmailVerification;
+
     private static AccountStatus effectiveStatus(User user) {
         if (user.getAccountStatus() == null) {
             return AccountStatus.ACTIVE;
@@ -73,22 +77,33 @@ public class AuthService {
             throw new ValidationException("Email already registered");
         }
 
-        String verificationToken = UUID.randomUUID().toString();
-
         User user = new User();
         user.setEmail(email.trim());
         user.setPassword(passwordEncoder.encode(password));
         user.setName(name.trim());
         user.setRole(Role.USER);
-        user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
-        user.setVerificationToken(verificationToken);
+        if (requireEmailVerification) {
+            user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
+            user.setVerificationToken(UUID.randomUUID().toString());
+        } else {
+            user.setAccountStatus(AccountStatus.ACTIVE);
+            user.setVerificationToken(null);
+        }
 
         User savedUser = authRepository.save(user);
-        log.info("[AUTH] Registered user (pending verification): {}", savedUser.getEmail());
+        if (requireEmailVerification) {
+            log.info("[AUTH] Registered user (pending verification): {}", savedUser.getEmail());
+            emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getVerificationToken());
+            return buildPendingVerificationResponse(savedUser);
+        }
 
-        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken);
-
-        return buildPendingVerificationResponse(savedUser);
+        log.info("[AUTH] Registered user (active): {}", savedUser.getEmail());
+        String token = jwtTokenProvider.generateToken(
+            savedUser.getId(),
+            savedUser.getEmail(),
+            savedUser.getRole().name()
+        );
+        return buildAuthResponseWithToken(savedUser, token);
     }
 
     public AuthResponse login(LoginRequest request) {
