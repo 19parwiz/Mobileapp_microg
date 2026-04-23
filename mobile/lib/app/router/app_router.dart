@@ -102,6 +102,10 @@ class AppRouter {
     debugLogDiagnostics: true,
     redirect: (context, state) async {
       try {
+        // Temporary bypass: allow direct dashboard access from login flow
+        // even when backend still returns EMAIL_NOT_VERIFIED.
+        final skipEmailVerification =
+            state.uri.queryParameters['skipEmailVerification'] == '1';
         // Get the current token from secure storage
         final token = await getIt<GetTokenUseCase>()();
         final isLoggedIn = token != null && token.isNotEmpty;
@@ -117,6 +121,9 @@ class AppRouter {
 
         // SECURITY: If user is NOT logged in
         if (!isLoggedIn) {
+          if (currentPath == home && skipEmailVerification) {
+            return null; // Allow temporary dashboard access
+          }
           // Allow access to public routes (login, register)
           if (isOnPublicRoute) {
             return null; // Stay on the route

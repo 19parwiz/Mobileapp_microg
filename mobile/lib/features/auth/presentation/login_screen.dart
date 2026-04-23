@@ -53,8 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthApiException catch (e) {
       if (!mounted) return;
       if (e.errorCode == 'EMAIL_NOT_VERIFIED') {
-        final q = Uri.encodeComponent(_emailController.text.trim());
-        context.push('${AppRouter.verifyEmailPending}?email=$q');
+        context.go('${AppRouter.home}?skipEmailVerification=1');
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
