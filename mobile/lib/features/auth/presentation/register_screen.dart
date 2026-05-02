@@ -7,6 +7,8 @@ import '../../../core/utils/validators.dart';
 import '../../../core/widgets/responsive_constrained.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/di/injector.dart';
+import '../domain/auth_api_exception.dart';
+import '../domain/usecases/login_use_case.dart';
 import '../domain/usecases/register_use_case.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -66,8 +68,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
       if (!auth.hasUsableToken) {
-        final q = Uri.encodeComponent(_emailController.text.trim());
-        context.go('${AppRouter.verifyEmailPending}?email=$q');
+        // Temporary UX: do not route to verification-pending page.
+        // Try immediate sign-in in case backend is configured to skip verification.
+        try {
+          final loginUseCase = getIt<LoginUseCase>();
+          await loginUseCase(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+          if (!mounted) return;
+          context.go(AppRouter.home);
+          return;
+        } on AuthApiException catch (e) {
+          if (!mounted) return;
+          final message = e.errorCode == 'EMAIL_NOT_VERIFIED'
+              ? 'Registration complete. Please sign in after backend verification settings are updated.'
+              : e.message;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: Colors.orange),
+          );
+          context.go(AppRouter.login);
+          return;
+        }
       } else {
         context.go(AppRouter.home);
       }

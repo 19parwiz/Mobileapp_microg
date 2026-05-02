@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../app/router/app_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/widgets/responsive_constrained.dart';
@@ -155,7 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () =>
+                            context.go('${AppRouter.home}?tab=camera'),
                         child: const Text('See All'),
                       ),
                     ],
@@ -167,6 +170,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, index) => _CameraTile(
                         title: _cameraNames[index],
                         isDark: isDark,
+                        onTap: () =>
+                            context.go('${AppRouter.home}?tab=camera'),
                       ),
                       separatorBuilder: (context, index) =>
                           const SizedBox(width: AppSizes.spacingM),
@@ -177,10 +182,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   Wrap(
                     spacing: AppSizes.spacingS,
                     runSpacing: AppSizes.spacingS,
-                    children: const [
-                      _QuickActionChip(label: 'Quick-chat', icon: Icons.spa),
-                      _QuickActionChip(label: 'Elegant suggestion'),
-                      _QuickActionChip(label: 'Fast your grow'),
+                    children: [
+                      _QuickActionChip(
+                        label: 'Quick-chat',
+                        icon: Icons.spa,
+                        onTap: () => context.go('${AppRouter.home}?tab=ai'),
+                      ),
+                      _QuickActionChip(
+                        label: 'Elegant suggestion',
+                        icon: Icons.tips_and_updates_outlined,
+                        onTap: () => context.go('${AppRouter.home}?tab=ai'),
+                      ),
+                      _QuickActionChip(
+                        label: 'Fast your grow',
+                        icon: Icons.eco_outlined,
+                        onTap: () => context.go('${AppRouter.home}?tab=plants'),
+                      ),
                     ],
                   ),
                   if (provider.hasError)
@@ -363,70 +380,82 @@ class _MetricCard extends StatelessWidget {
 class _CameraTile extends StatelessWidget {
   final String title;
   final bool isDark;
+  final VoidCallback onTap;
 
-  const _CameraTile({required this.title, required this.isDark});
+  const _CameraTile({
+    required this.title,
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 148,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? const [Color(0xFF3D473C), Color(0xFF1E231D)]
-                      : const [Color(0xFFB5A38E), Color(0xFF6D604E)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.14),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Align(
-                alignment: Alignment.topRight,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
                 child: Container(
-                  margin: const EdgeInsets.all(AppSizes.paddingS),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingS,
-                    vertical: AppSizes.paddingXS,
-                  ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.28),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(14),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? const [Color(0xFF3D473C), Color(0xFF1E231D)]
+                          : const [Color(0xFFB5A38E), Color(0xFF6D604E)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.14),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    'LIVE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      margin: const EdgeInsets.all(AppSizes.paddingS),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.paddingS,
+                        vertical: AppSizes.paddingXS,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.28),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'LIVE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: AppSizes.spacingS),
+              Center(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizes.spacingS),
-          Center(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -435,41 +464,53 @@ class _CameraTile extends StatelessWidget {
 class _QuickActionChip extends StatelessWidget {
   final String label;
   final IconData? icon;
+  final VoidCallback onTap;
 
-  const _QuickActionChip({required this.label, this.icon});
+  const _QuickActionChip({
+    required this.label,
+    required this.onTap,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.paddingM,
-        vertical: AppSizes.paddingS,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A3A2A) : const Color(0xFFEAF4E5),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: isDark
-              ? Theme.of(context).colorScheme.outlineVariant
-              : const Color(0xFFCBDEC4),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: AppSizes.iconS, color: AppColors.primary),
-            const SizedBox(width: AppSizes.spacingS),
-          ],
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.paddingM,
+            vertical: AppSizes.paddingS,
           ),
-        ],
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2A3A2A) : const Color(0xFFEAF4E5),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isDark
+                  ? Theme.of(context).colorScheme.outlineVariant
+                  : const Color(0xFFCBDEC4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: AppSizes.iconS, color: AppColors.primary),
+                const SizedBox(width: AppSizes.spacingS),
+              ],
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

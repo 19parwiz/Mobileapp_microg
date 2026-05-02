@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../app/router/app_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/camera/presentation/camera_screen.dart';
@@ -19,6 +22,15 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
   final Map<int, Widget?> _screenCache = {};
   static const int _screenCount = 5;
+
+  /// Query `tab` values aligned with bottom bar indices (index 0 = plain `/home`).
+  static const List<String> _tabQueryValues = [
+    'home',
+    'camera',
+    'ai',
+    'plants',
+    'more',
+  ];
 
   // Build screen lazily on first access to prevent blocking
   Widget _buildScreen(int index) {
@@ -57,8 +69,62 @@ class _MainScaffoldState extends State<MainScaffold> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _applyTabFromRouteQuery();
+  }
+
+  void _applyTabFromRouteQuery() {
+    final uri = GoRouterState.of(context).uri;
+    if (uri.path != AppRouter.home) return;
+    final raw = uri.queryParameters['tab']?.toLowerCase();
+    if (raw == null || raw.isEmpty) return;
+
+    const tabIndex = {
+      'home': 0,
+      'camera': 1,
+      'ai': 2,
+      'plants': 3,
+      'myplants': 3,
+      'more': 4,
+    };
+    final next = tabIndex[raw];
+    if (next == null || next == _currentIndex) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _currentIndex = next;
+      });
+    });
+  }
+
+  void _syncHomeLocationToTab(int index) {
+    if (!mounted) return;
+    final uri = GoRouterState.of(context).uri;
+    if (uri.path != AppRouter.home) return;
+
+    final qp = Map<String, String>.from(uri.queryParameters);
+
+    if (index == 0) {
+      if (!qp.containsKey('tab')) return;
+      qp.remove('tab');
+      context.go(
+        qp.isEmpty
+            ? AppRouter.home
+            : Uri(path: AppRouter.home, queryParameters: qp).toString(),
+      );
+      return;
+    }
+
+    final desired = _tabQueryValues[index];
+    if (qp['tab'] == desired) return;
+    qp['tab'] = desired;
+    context.go(Uri(path: AppRouter.home, queryParameters: qp).toString());
+  }
+
   void _onTabTapped(int index) {
-    // Validate index is within bounds
     if (index < 0 || index >= _screenCount) {
       return;
     }
@@ -67,6 +133,11 @@ class _MainScaffoldState extends State<MainScaffold> {
         _currentIndex = index;
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _syncHomeLocationToTab(index);
+      }
+    });
   }
 
   @override

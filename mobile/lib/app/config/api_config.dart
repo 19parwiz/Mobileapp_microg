@@ -12,12 +12,15 @@ class ApiConfig {
   // flutter run --dart-define=APP_ENV=vpn --dart-define=REMOTE_HOST=10.1.10.144
   static const String _environment = String.fromEnvironment(
     'APP_ENV',
-    defaultValue: 'campus',
+    defaultValue: 'railway',
   );
   static const String _apiHostOverride = String.fromEnvironment('API_HOST');
+  static const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');
   static const String _aiHostOverride = String.fromEnvironment('AI_HOST');
   static const String _remoteHostOverride = String.fromEnvironment('REMOTE_HOST');
   static const String _cameraHostOverride = String.fromEnvironment('CAMERA_HOST');
+  static const String _railwayBaseUrl =
+      'https://mobileappmicrog-production.up.railway.app/api';
 
   static String _defaultHostForPlatform() {
     if (kIsWeb) return 'localhost';
@@ -51,6 +54,16 @@ class ApiConfig {
 
   static String get baseUrl {
     try {
+      if (_apiBaseUrlOverride.isNotEmpty) {
+        return _apiBaseUrlOverride;
+      }
+
+      // For deployed app builds, allow a simple environment switch to Railway.
+      if (_environment.toLowerCase() == 'production' ||
+          _environment.toLowerCase() == 'railway') {
+        return _railwayBaseUrl;
+      }
+
       final host = _apiHostOverride.isNotEmpty
           ? _apiHostOverride
           : (_environment.toLowerCase() == 'local'

@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
@@ -50,6 +52,9 @@ class _CameraScreenState extends State<CameraScreen>
   bool _showDropdown = false;
   PredictionResult? _predictionResult;
   int _scanDurationSeconds = 2;
+
+  /// Captures the visible video/camera/MJPEG layer (not the scan overlay).
+  final GlobalKey _previewCaptureKey = GlobalKey();
 
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
@@ -316,61 +321,194 @@ class _CameraScreenState extends State<CameraScreen>
     });
   }
 
-  Future<void> _onCapturePressed() async {
+  Future<void> _onDeviceCapturePressed() async {
     final messenger = ScaffoldMessenger.of(context);
 
-    if (_sourceType == CameraSourceType.device) {
-      final controller = _cameraController;
-      if (controller == null || !controller.value.isInitialized) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Camera is not ready yet.')),
-        );
-        return;
-      }
-
-      if (_isScanning || _isPredicting) return;
-
-      // Give the user a short guided window before we shoot.
-      setState(() {
-        _isScanning = true;
-        _predictionResult = null;
-      });
-
-      _scanController
-        ..duration = Duration(seconds: _scanDurationSeconds)
-        ..reset();
-
-      try {
-        await _scanController.forward();
-        if (!mounted) return;
-        await _captureAndPredict();
-      } on DioException catch (e) {
-        if (!mounted) return;
-        final errorMessage = _formatPredictionError(e);
-        messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
-      } catch (e) {
-        if (!mounted) return;
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Capture completed, but prediction failed. Please try again.',
-            ),
-          ),
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isScanning = false;
-            _isPredicting = false;
-          });
-        }
-      }
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Camera is not ready yet.')),
+      );
       return;
     }
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Stream snapshot will be available soon.')),
-    );
+    if (_isScanning || _isPredicting) return;
+
+    setState(() {
+      _isScanning = true;
+      _predictionResult = null;
+    });
+
+    _scanController
+      ..duration = Duration(seconds: _scanDurationSeconds)
+      ..reset();
+
+    try {
+      await _scanController.forward();
+      if (!mounted) return;
+      await _captureAndPredict();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final errorMessage = _formatPredictionError(e);
+      messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Capture completed, but prediction failed. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+          _isPredicting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _onLabStreamDetectPressed() async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (_sourceType != CameraSourceType.labStream) return;
+    if (_webFallbackUrl != null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Detection is not available for the web stream player. '
+            'Use HLS or MJPEG, or switch to the device camera.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final streamUrl = _selectedLabCamera?.streamUrl ?? '';
+    final isHls = streamUrl.toLowerCase().contains('.m3u8');
+    if (isHls) {
+      final c = _videoController;
+      if (c == null || !c.value.isInitialized) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Wait for the stream to finish loading.')),
+        );
+        return;
+      }
+    } else if (streamUrl.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No stream URL selected.')),
+      );
+      return;
+    }
+
+    if (_isScanning || _isPredicting) return;
+
+    setState(() {
+      _isScanning = true;
+      _predictionResult = null;
+    });
+
+    _scanController
+      ..duration = Duration(seconds: _scanDurationSeconds)
+      ..reset();
+
+    try {
+      await _scanController.forward();
+      if (!mounted) return;
+      await _captureStreamFrameAndPredict();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(_formatPredictionError(e))));
+    } catch (e) {
+      if (!mounted) return;
+      final String msg;
+      if (e is UnsupportedError) {
+        msg = e.message ??
+            'Stream capture is not supported for this player.';
+      } else {
+        msg = 'Could not capture or analyze this stream. Try again.';
+      }
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+          _isPredicting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _captureStreamFrameAndPredict() async {
+    final boundary = _previewCaptureKey.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) {
+      throw StateError('Preview is not ready for capture.');
+    }
+
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    final image = await boundary.toImage(pixelRatio: ratio);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+
+    if (byteData == null) {
+      throw StateError('Could not encode preview image.');
+    }
+
+    final bytes = byteData.buffer.asUint8List();
+    if (bytes.length < 800) {
+      throw UnsupportedError(
+        'Captured frame looks empty. HLS/MJPEG texture capture can fail on some devices; try device camera or another stream type.',
+      );
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isPredicting = true;
+      _predictionResult = null;
+    });
+
+    try {
+      final result = await _generatePredictionUseCase.fromImageBytes(bytes);
+      if (!mounted) return;
+
+      setState(() {
+        _predictionResult = result;
+      });
+
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Prediction Result'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Top prediction: ${result.topPrediction ?? 'No result'}'),
+              if (result.predictions.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Detections: ${result.predictions.join(', ')}'),
+              ],
+              const SizedBox(height: 8),
+              Text(result.message),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPredicting = false;
+        });
+      }
+    }
   }
 
   Future<void> _captureAndPredict() async {
@@ -442,7 +580,16 @@ class _CameraScreenState extends State<CameraScreen>
         opacity: _fadeAnimation,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: StreamWebView(url: _webFallbackUrl!),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              RepaintBoundary(
+                key: _previewCaptureKey,
+                child: StreamWebView(url: _webFallbackUrl!),
+              ),
+              if (_isScanning) _buildScanOverlay(),
+            ],
+          ),
         ),
       );
     }
@@ -484,7 +631,10 @@ class _CameraScreenState extends State<CameraScreen>
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CameraPreview(controller),
+              RepaintBoundary(
+                key: _previewCaptureKey,
+                child: CameraPreview(controller),
+              ),
               if (_isScanning) _buildScanOverlay(),
             ],
           ),
@@ -509,10 +659,20 @@ class _CameraScreenState extends State<CameraScreen>
         opacity: _fadeAnimation,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
-          child: AspectRatio(
-            aspectRatio:
-                controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-            child: VideoPlayer(controller),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AspectRatio(
+                aspectRatio: controller.value.aspectRatio == 0
+                    ? 16 / 9
+                    : controller.value.aspectRatio,
+                child: RepaintBoundary(
+                  key: _previewCaptureKey,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+              if (_isScanning) _buildScanOverlay(),
+            ],
           ),
         ),
       );
@@ -520,9 +680,21 @@ class _CameraScreenState extends State<CameraScreen>
 
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: MjpegViewer(
-        streamUrl: streamUrl,
-        isPlaying: _isStreamPlaying,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RepaintBoundary(
+              key: _previewCaptureKey,
+              child: MjpegViewer(
+                streamUrl: streamUrl,
+                isPlaying: _isStreamPlaying,
+              ),
+            ),
+            if (_isScanning) _buildScanOverlay(),
+          ],
+        ),
       ),
     );
   }
@@ -760,14 +932,95 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
-  Widget _buildCaptureButton() {
+  Widget _buildCaptureActions() {
+    if (_sourceType == CameraSourceType.labStream) {
+      return _buildLabStreamDetectSection();
+    }
+    return _buildDeviceCaptureButton();
+  }
+
+  Widget _buildLabStreamDetectSection() {
+    final theme = Theme.of(context);
+    final webView = _webFallbackUrl != null;
+    final streamUrl = _selectedLabCamera?.streamUrl ?? '';
+    final isHls = streamUrl.toLowerCase().contains('.m3u8');
+    final hlsReady =
+        isHls && _videoController != null && _videoController!.value.isInitialized;
+    final mjpegReady = !isHls && streamUrl.isNotEmpty && !webView;
+    final canDetect = (hlsReady || mjpegReady) && !webView;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.paddingL,
+        AppSizes.paddingL,
+        AppSizes.paddingL,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Live stream',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingS),
+          Text(
+            webView
+                ? 'You are viewing the web player fallback. Plant detection needs HLS, MJPEG, or the device camera tab.'
+                : 'Watch the feed above. When you want AI plant detection from this stream, run a scan — a frame is captured at the end of the sweep.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingM),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: (!canDetect || _isScanning || _isPredicting)
+                  ? null
+                  : _onLabStreamDetectPressed,
+              icon: (_isPredicting || _isScanning)
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.document_scanner_outlined),
+              label: Text(
+                _isScanning
+                    ? 'SCANNING STREAM...'
+                    : _isPredicting
+                        ? 'PROCESSING...'
+                        : 'SCAN LIVE STREAM & DETECT',
+                style: const TextStyle(
+                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(double.infinity, 52),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeviceCaptureButton() {
     final deviceReady = _sourceType == CameraSourceType.device &&
         _cameraController != null &&
         _cameraController!.value.isInitialized &&
         !_isLoading &&
         !_isPredicting;
-
-    final isEnabled = deviceReady || _sourceType == CameraSourceType.labStream;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -780,7 +1033,7 @@ class _CameraScreenState extends State<CameraScreen>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
-            colors: isEnabled
+            colors: deviceReady
                 ? const [Color(0xFF2E7D32), Color(0xFF1B5E20)]
                 : const [Color(0xFF9FB09F), Color(0xFF8A9A8A)],
           ),
@@ -793,7 +1046,7 @@ class _CameraScreenState extends State<CameraScreen>
           ],
         ),
         child: ElevatedButton.icon(
-          onPressed: isEnabled ? _onCapturePressed : null,
+          onPressed: deviceReady ? _onDeviceCapturePressed : null,
           icon: (_isPredicting || _isScanning)
               ? const SizedBox(
                   width: 18,
@@ -809,9 +1062,7 @@ class _CameraScreenState extends State<CameraScreen>
                 ? 'SCANNING ${_scanDurationSeconds}s...'
                 : _isPredicting
                     ? 'PROCESSING...'
-                : _sourceType == CameraSourceType.device
-                    ? 'CAPTURE & PREDICT'
-                    : 'SNAPSHOT (SOON)',
+                    : 'CAPTURE & PREDICT',
             style: const TextStyle(
               letterSpacing: 0.4,
               fontWeight: FontWeight.w700,
@@ -839,7 +1090,13 @@ class _CameraScreenState extends State<CameraScreen>
       builder: (context, child) {
         final progress = _scanController.value;
         final remaining = ((_scanDurationSeconds * (1 - progress)).ceil()).clamp(0, _scanDurationSeconds);
-        final y = -1.0 + (2.0 * progress);
+        // Sweep top → bottom → top so the scan line moves up and down once per cycle.
+        final double y;
+        if (progress < 0.5) {
+          y = -1.0 + (4.0 * progress);
+        } else {
+          y = 1.0 - (4.0 * (progress - 0.5));
+        }
 
         return Container(
           color: Colors.black.withValues(alpha: 0.18),
@@ -1179,7 +1436,7 @@ class _CameraScreenState extends State<CameraScreen>
             _buildPageHeader(),
             _buildSourceAndSelectionCard(),
             _buildPreviewCard(),
-            _buildCaptureButton(),
+            _buildCaptureActions(),
             _buildScanDurationSelector(),
             _buildPredictionResultCard(),
             _buildLabStreamsSection(),
