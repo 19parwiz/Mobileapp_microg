@@ -19,6 +19,8 @@ import 'widgets/camera_connection_test.dart';
 import 'widgets/mjpeg_viewer.dart';
 import 'widgets/stream_webview.dart';
 
+enum _PredictionMode { plantType, tomatoDisease }
+
 class CameraScreen extends StatefulWidget {
   final bool showAppBar;
 
@@ -52,6 +54,7 @@ class _CameraScreenState extends State<CameraScreen>
   bool _showDropdown = false;
   PredictionResult? _predictionResult;
   int _scanDurationSeconds = 2;
+  _PredictionMode _predictionMode = _PredictionMode.plantType;
 
   /// Captures the visible video/camera/MJPEG layer (not the scan overlay).
   final GlobalKey _previewCaptureKey = GlobalKey();
@@ -470,7 +473,10 @@ class _CameraScreenState extends State<CameraScreen>
     });
 
     try {
-      final result = await _generatePredictionUseCase.fromImageBytes(bytes);
+      final result = await _generatePredictionUseCase.fromImageBytes(
+        bytes,
+        tomatoDisease: _predictionMode == _PredictionMode.tomatoDisease,
+      );
       if (!mounted) return;
 
       setState(() {
@@ -485,10 +491,13 @@ class _CameraScreenState extends State<CameraScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Top prediction: ${result.topPrediction ?? 'No result'}'),
+              Text(
+                'Top prediction (${_predictionMode == _PredictionMode.tomatoDisease ? 'Tomato disease' : 'Plant type'}): '
+                '${result.topPrediction ?? 'No result'}',
+              ),
               if (result.predictions.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text('Detections: ${result.predictions.join(', ')}'),
+                Text('Results: ${result.predictions.join(', ')}'),
               ],
               const SizedBox(height: 8),
               Text(result.message),
@@ -525,7 +534,10 @@ class _CameraScreenState extends State<CameraScreen>
       _predictionResult = null;
     });
 
-    final result = await _generatePredictionUseCase(image.path);
+    final result = await _generatePredictionUseCase(
+      image.path,
+      tomatoDisease: _predictionMode == _PredictionMode.tomatoDisease,
+    );
     if (!mounted) return;
 
     setState(() {
@@ -540,10 +552,13 @@ class _CameraScreenState extends State<CameraScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Top prediction: ${result.topPrediction ?? 'No result'}'),
+            Text(
+              'Top prediction (${_predictionMode == _PredictionMode.tomatoDisease ? 'Tomato disease' : 'Plant type'}): '
+              '${result.topPrediction ?? 'No result'}',
+            ),
             if (result.predictions.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Detections: ${result.predictions.join(', ')}'),
+              Text('Results: ${result.predictions.join(', ')}'),
             ],
             const SizedBox(height: 8),
             Text(result.message),
@@ -997,7 +1012,9 @@ class _CameraScreenState extends State<CameraScreen>
                     ? 'SCANNING STREAM...'
                     : _isPredicting
                         ? 'PROCESSING...'
-                        : 'SCAN LIVE STREAM & DETECT',
+                        : _predictionMode == _PredictionMode.tomatoDisease
+                            ? 'SCAN STREAM & DETECT DISEASE'
+                            : 'SCAN LIVE STREAM & DETECT',
                 style: const TextStyle(
                   letterSpacing: 0.3,
                   fontWeight: FontWeight.w700,
@@ -1062,7 +1079,9 @@ class _CameraScreenState extends State<CameraScreen>
                 ? 'SCANNING ${_scanDurationSeconds}s...'
                 : _isPredicting
                     ? 'PROCESSING...'
-                    : 'CAPTURE & PREDICT',
+                    : _predictionMode == _PredictionMode.tomatoDisease
+                        ? 'CAPTURE & DETECT DISEASE'
+                        : 'CAPTURE & PREDICT',
             style: const TextStyle(
               letterSpacing: 0.4,
               fontWeight: FontWeight.w700,
@@ -1184,6 +1203,44 @@ class _CameraScreenState extends State<CameraScreen>
                   },
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildPredictionModeSelector() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.paddingL,
+        AppSizes.paddingM,
+        AppSizes.paddingL,
+        0,
+      ),
+      child: Wrap(
+        spacing: AppSizes.spacingS,
+        children: [
+          ChoiceChip(
+            label: const Text('Plant type'),
+            selected: _predictionMode == _PredictionMode.plantType,
+            onSelected: _isPredicting || _isScanning
+                ? null
+                : (_) {
+                    setState(() {
+                      _predictionMode = _PredictionMode.plantType;
+                    });
+                  },
+          ),
+          ChoiceChip(
+            label: const Text('Tomato disease'),
+            selected: _predictionMode == _PredictionMode.tomatoDisease,
+            onSelected: _isPredicting || _isScanning
+                ? null
+                : (_) {
+                    setState(() {
+                      _predictionMode = _PredictionMode.tomatoDisease;
+                    });
+                  },
+          ),
+        ],
       ),
     );
   }
@@ -1437,6 +1494,7 @@ class _CameraScreenState extends State<CameraScreen>
             _buildSourceAndSelectionCard(),
             _buildPreviewCard(),
             _buildCaptureActions(),
+            _buildPredictionModeSelector(),
             _buildScanDurationSelector(),
             _buildPredictionResultCard(),
             _buildLabStreamsSection(),

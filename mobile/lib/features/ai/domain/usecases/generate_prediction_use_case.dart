@@ -10,11 +10,25 @@ class GeneratePredictionUseCase {
   GeneratePredictionUseCase({required IPredictionRepository predictionRepository})
       : _predictionRepository = predictionRepository;
 
-  Future<PredictionResult> call(String imagePath) =>
-      _predictionRepository.generatePrediction(imagePath);
+  Future<PredictionResult> call(
+    String imagePath, {
+    bool tomatoDisease = false,
+  }) =>
+      _predictionRepository.generatePrediction(
+        imagePath,
+        tomatoDisease: tomatoDisease,
+      );
 
-  Future<PredictionResult> fromImageBytes(Uint8List bytes, {String filename = 'capture.png'}) =>
-      _predictionRepository.generatePredictionFromBytes(bytes, filename: filename);
+  Future<PredictionResult> fromImageBytes(
+    Uint8List bytes, {
+    String filename = 'capture.png',
+    bool tomatoDisease = false,
+  }) =>
+      _predictionRepository.generatePredictionFromBytes(
+        bytes,
+        filename: filename,
+        tomatoDisease: tomatoDisease,
+      );
 }
 
 
