@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -24,6 +25,9 @@ public class AiPredictService {
 
     @Value("${ai.service.url:http://localhost:8000}")
     private String aiServiceUrl;
+
+    @Value("${ai.tomato-service.url:http://localhost:5002}")
+    private String aiTomatoServiceUrl;
 
     public AiPredictResponse predict(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -90,6 +94,60 @@ public class AiPredictService {
             throw new IllegalStateException("Failed to read uploaded image", e);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to call AI service: " + e.getMessage(), e);
+        }
+    }
+
+    public Map<String, Object> predictTomatoDisease(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Image file is required");
+        }
+
+        try {
+            ByteArrayResource fileResource = new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return file.getOriginalFilename() != null
+                        ? file.getOriginalFilename()
+                        : "upload.jpg";
+                }
+            };
+
+            log.info("[AI-TOMATO] Forwarding image to tomato AI service. filename='{}', size={} bytes",
+                fileResource.getFilename(), file.getSize());
+
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> multipartBody = new LinkedMultiValueMap<>();
+            HttpHeaders partHeaders = new HttpHeaders();
+            partHeaders.setContentDisposition(
+                ContentDisposition.formData()
+                    .name("file")
+                    .filename(fileResource.getFilename())
+                    .build()
+            );
+            partHeaders.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            multipartBody.add("file", new HttpEntity<>(fileResource, partHeaders));
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity =
+                new HttpEntity<>(multipartBody, headers);
+
+            ResponseEntity<Map> responseEntity =
+                restTemplate.postForEntity(aiTomatoServiceUrl + "/predict", requestEntity, Map.class);
+
+            Map<String, Object> response = responseEntity.getBody();
+            if (response == null) {
+                throw new IllegalStateException("Tomato AI service returned an empty response");
+            }
+
+            log.info("[AI-TOMATO] Prediction completed for file='{}'", fileResource.getFilename());
+            return response;
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to read uploaded image", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to call tomato AI service: " + e.getMessage(), e);
         }
     }
 }

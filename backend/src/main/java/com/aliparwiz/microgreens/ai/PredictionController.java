@@ -54,6 +54,20 @@ public class PredictionController {
                 .body(Map.of("message", "Failed to run AI prediction: " + e.getMessage()));
         }
     }
+
+    @PostMapping(value = "/predict-tomato-disease", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> predictTomatoDisease(@RequestParam("file") MultipartFile file) {
+        try {
+            Map<String, Object> response = aiPredictService.predictTomatoDisease(file);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("message", "Failed to run tomato disease prediction: " + e.getMessage()));
+        }
+    }
     
     @PostMapping("/predictions")
     public ResponseEntity<?> savePrediction(@Valid @RequestBody PredictionRequest request) {
