@@ -53,28 +53,38 @@ class SensorData {
 
   factory SensorData.fromJson(Map<String, dynamic> json) {
     return SensorData(
-      airTemperature: (json['air_temperature'] as num?)?.toDouble() ?? 0.0,
-      airHumidity: (json['air_humidity'] as num?)?.toDouble() ?? 0.0,
-      co2: (json['co2'] as num?)?.toDouble() ?? 0.0,
-      ec: (json['ec'] as num?)?.toDouble() ?? 0.0,
-      tds: (json['tds'] as num?)?.toDouble() ?? 0.0,
-      phLevel: (json['ph_level'] as num?)?.toDouble() ?? 0.0,
-      lightLevel: (json['light_level'] as num?)?.toDouble() ?? 0.0,
-      turbidity: (json['turbidity'] as num?)?.toDouble() ?? 0.0,
-      waterTemperature: (json['water_temperature'] as int?) ?? 0,
-      soil1: (json['soil1'] as num?)?.toDouble() ?? 0.0,
-      soil2: (json['soil2'] as num?)?.toDouble() ?? 0.0,
-      soil3: (json['soil3'] as num?)?.toDouble() ?? 0.0,
-      soil4: (json['soil4'] as num?)?.toDouble() ?? 0.0,
-      soil5: (json['soil5'] as num?)?.toDouble() ?? 0.0,
-      weatherTemp: json['weather_temp']?.toString(),
+      airTemperature: _numFromAny(
+        json,
+        const ['air_temperature', 'temperature', 'temp', 'weather_temp'],
+      ),
+      airHumidity: _numFromAny(
+        json,
+        const ['air_humidity', 'humidity', 'humid'],
+      ),
+      co2: _numFromAny(json, const ['co2', 'co_2']),
+      ec: _numFromAny(json, const ['ec', 'electrical_conductivity']),
+      tds: _numFromAny(json, const ['tds']),
+      phLevel: _numFromAny(json, const ['ph_level', 'ph']),
+      lightLevel: _numFromAny(json, const ['light_level', 'light', 'lux']),
+      turbidity: _numFromAny(json, const ['turbidity']),
+      waterTemperature: _numFromAny(
+        json,
+        const ['water_temperature', 'water_temp'],
+      ).round(),
+      soil1: _numFromAny(json, const ['soil1', 'soil_1']),
+      soil2: _numFromAny(json, const ['soil2', 'soil_2']),
+      soil3: _numFromAny(json, const ['soil3', 'soil_3']),
+      soil4: _numFromAny(json, const ['soil4', 'soil_4']),
+      soil5: _numFromAny(json, const ['soil5', 'soil_5']),
+      weatherTemp: _firstExisting(json, const ['weather_temp', 'weatherTemp'])
+          ?.toString(),
       temperatureData: _parseTemperatureData(json['temperature_data']),
       humidityData: _parseHumidityData(json['humidity_data']),
       co2Data: _parseCO2Data(json['co2_data']),
       ecData: _parseECData(json['ec_data']),
       tdsData: _parseTDSData(json['tds_data']),
       turbidityData: _parseTurbidityData(json['turbidity_data']),
-        historyDates: (json['history_data'] as List? ?? [])
+      historyDates: (json['history_data'] as List? ?? [])
           .map((e) => e.toString())
           .toList(),
     );
@@ -167,8 +177,7 @@ class TemperatureReading {
 
   factory TemperatureReading.fromJson(Map<String, dynamic> json) =>
       TemperatureReading(
-        temperature:
-            (json['air_temperature'] as num?)?.toDouble() ?? 0.0,
+        temperature: (json['air_temperature'] as num?)?.toDouble() ?? 0.0,
         timestamp: _parseTimestamp(json['timestamp']),
       );
 
@@ -212,7 +221,7 @@ class CO2Reading {
 
   factory CO2Reading.fromJson(Map<String, dynamic> json) => CO2Reading(
         co2: (json['co2'] as num?)?.toDouble() ?? 0.0,
-      timestamp: _parseTimestamp(json['timestamp']),
+        timestamp: _parseTimestamp(json['timestamp']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -233,7 +242,7 @@ class ECReading {
 
   factory ECReading.fromJson(Map<String, dynamic> json) => ECReading(
         ec: (json['ec'] as num?)?.toDouble() ?? 0.0,
-      timestamp: _parseTimestamp(json['timestamp']),
+        timestamp: _parseTimestamp(json['timestamp']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -254,7 +263,7 @@ class TDSReading {
 
   factory TDSReading.fromJson(Map<String, dynamic> json) => TDSReading(
         tds: (json['tds'] as num?)?.toDouble() ?? 0.0,
-      timestamp: _parseTimestamp(json['timestamp']),
+        timestamp: _parseTimestamp(json['timestamp']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -331,4 +340,20 @@ List<TurbidityReading> _parseTurbidityData(dynamic data) {
 DateTime _parseTimestamp(dynamic value) {
   if (value == null) return DateTime.now();
   return DateTime.tryParse(value.toString()) ?? DateTime.now();
+}
+
+dynamic _firstExisting(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    if (json.containsKey(key) && json[key] != null) {
+      return json[key];
+    }
+  }
+  return null;
+}
+
+double _numFromAny(Map<String, dynamic> json, List<String> keys) {
+  final dynamic value = _firstExisting(json, keys);
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
 }

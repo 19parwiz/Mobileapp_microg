@@ -91,7 +91,8 @@ class _CameraScreenState extends State<CameraScreen>
       final cameras = await availableCameras();
       // Some phones expose extra logical cameras (3rd/4th). Keep UI simple:
       // show the first two only (typically back + front).
-      final visibleCameras = cameras.length > 2 ? cameras.take(2).toList() : cameras;
+      final visibleCameras =
+          cameras.length > 2 ? cameras.take(2).toList() : cameras;
       if (!mounted) return;
 
       setState(() {
@@ -395,7 +396,8 @@ class _CameraScreenState extends State<CameraScreen>
       final c = _videoController;
       if (c == null || !c.value.isInitialized) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Wait for the stream to finish loading.')),
+          const SnackBar(
+              content: Text('Wait for the stream to finish loading.')),
         );
         return;
       }
@@ -423,13 +425,13 @@ class _CameraScreenState extends State<CameraScreen>
       await _captureStreamFrameAndPredict();
     } on DioException catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(_formatPredictionError(e))));
+      messenger
+          .showSnackBar(SnackBar(content: Text(_formatPredictionError(e))));
     } catch (e) {
       if (!mounted) return;
       final String msg;
       if (e is UnsupportedError) {
-        msg = e.message ??
-            'Stream capture is not supported for this player.';
+        msg = e.message ?? 'Stream capture is not supported for this player.';
       } else {
         msg = 'Could not capture or analyze this stream. Try again.';
       }
@@ -486,18 +488,22 @@ class _CameraScreenState extends State<CameraScreen>
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Prediction Result'),
+          title: Text(
+            _predictionMode == _PredictionMode.tomatoDisease
+                ? 'Tomato Disease Classification Result'
+                : 'Plant Classification Result',
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Top prediction (${_predictionMode == _PredictionMode.tomatoDisease ? 'Tomato disease' : 'Plant type'}): '
+                'Top class (${_predictionMode == _PredictionMode.tomatoDisease ? 'Tomato disease' : 'Plant type'}): '
                 '${result.topPrediction ?? 'No result'}',
               ),
               if (result.predictions.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text('Results: ${result.predictions.join(', ')}'),
+                Text('Ranked classes: ${result.predictions.join(', ')}'),
               ],
               const SizedBox(height: 8),
               Text(result.message),
@@ -547,18 +553,22 @@ class _CameraScreenState extends State<CameraScreen>
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Prediction Result'),
+        title: Text(
+          _predictionMode == _PredictionMode.tomatoDisease
+              ? 'Tomato Disease Classification Result'
+              : 'Plant Classification Result',
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Top prediction (${_predictionMode == _PredictionMode.tomatoDisease ? 'Tomato disease' : 'Plant type'}): '
+              'Top class (${_predictionMode == _PredictionMode.tomatoDisease ? 'Tomato disease' : 'Plant type'}): '
               '${result.topPrediction ?? 'No result'}',
             ),
             if (result.predictions.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Results: ${result.predictions.join(', ')}'),
+              Text('Ranked classes: ${result.predictions.join(', ')}'),
             ],
             const SizedBox(height: 8),
             Text(result.message),
@@ -756,7 +766,8 @@ class _CameraScreenState extends State<CameraScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final card = isDark ? theme.colorScheme.surfaceContainerHigh : Colors.white;
-    final border = isDark ? theme.colorScheme.outlineVariant : const Color(0xFF5A8A5A);
+    final border =
+        isDark ? theme.colorScheme.outlineVariant : const Color(0xFF5A8A5A);
 
     final selectedTitle = _sourceType == CameraSourceType.device
         ? (_selectedDeviceCameraIndex != null
@@ -766,7 +777,8 @@ class _CameraScreenState extends State<CameraScreen>
 
     final selectedSubtitle = _sourceType == CameraSourceType.device
         ? (_selectedDeviceCameraIndex != null
-            ? _lensDirectionLabel(_cameras[_selectedDeviceCameraIndex!].lensDirection)
+            ? _lensDirectionLabel(
+                _cameras[_selectedDeviceCameraIndex!].lensDirection)
             : '${_cameras.length} camera(s) available')
         : (_selectedLabCamera?.description ?? 'Remote stream source');
 
@@ -812,28 +824,31 @@ class _CameraScreenState extends State<CameraScreen>
                           _sourceType == CameraSourceType.device
                               ? 'CAMERAS'
                               : 'LAB STREAMS',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.3,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           selectedTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                         Text(
                           selectedSubtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
                         ),
                       ],
                     ),
@@ -849,7 +864,9 @@ class _CameraScreenState extends State<CameraScreen>
           AnimatedSize(
             duration: const Duration(milliseconds: 240),
             curve: Curves.easeInOut,
-            child: _showDropdown ? _buildDropdownOptions() : const SizedBox.shrink(),
+            child: _showDropdown
+                ? _buildDropdownOptions()
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -863,7 +880,9 @@ class _CameraScreenState extends State<CameraScreen>
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: isDark ? theme.colorScheme.outlineVariant : const Color(0xFFD4E1D0),
+            color: isDark
+                ? theme.colorScheme.outlineVariant
+                : const Color(0xFFD4E1D0),
           ),
         ),
       ),
@@ -887,7 +906,8 @@ class _CameraScreenState extends State<CameraScreen>
                 ListTile(
                   leading: Icon(
                     Icons.videocam,
-                    color: selected ? AppColors.primary : AppColors.textSecondary,
+                    color:
+                        selected ? AppColors.primary : AppColors.textSecondary,
                   ),
                   title: Text(lab.name),
                   subtitle: Text(
@@ -959,8 +979,9 @@ class _CameraScreenState extends State<CameraScreen>
     final webView = _webFallbackUrl != null;
     final streamUrl = _selectedLabCamera?.streamUrl ?? '';
     final isHls = streamUrl.toLowerCase().contains('.m3u8');
-    final hlsReady =
-        isHls && _videoController != null && _videoController!.value.isInitialized;
+    final hlsReady = isHls &&
+        _videoController != null &&
+        _videoController!.value.isInitialized;
     final mjpegReady = !isHls && streamUrl.isNotEmpty && !webView;
     final canDetect = (hlsReady || mjpegReady) && !webView;
 
@@ -984,8 +1005,8 @@ class _CameraScreenState extends State<CameraScreen>
           const SizedBox(height: AppSizes.spacingS),
           Text(
             webView
-                ? 'You are viewing the web player fallback. Plant detection needs HLS, MJPEG, or the device camera tab.'
-                : 'Watch the feed above. When you want AI plant detection from this stream, run a scan — a frame is captured at the end of the sweep.',
+                ? 'You are viewing the web player fallback. AI classification needs HLS, MJPEG, or the device camera tab.'
+                : 'Watch the feed above. When you want AI classification from this stream, run a scan — a frame is captured at the end of the sweep.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -1013,8 +1034,8 @@ class _CameraScreenState extends State<CameraScreen>
                     : _isPredicting
                         ? 'PROCESSING...'
                         : _predictionMode == _PredictionMode.tomatoDisease
-                            ? 'SCAN STREAM & DETECT DISEASE'
-                            : 'SCAN LIVE STREAM & DETECT',
+                            ? 'SCAN STREAM & CLASSIFY DISEASE'
+                            : 'SCAN LIVE STREAM & CLASSIFY',
                 style: const TextStyle(
                   letterSpacing: 0.3,
                   fontWeight: FontWeight.w700,
@@ -1080,8 +1101,8 @@ class _CameraScreenState extends State<CameraScreen>
                 : _isPredicting
                     ? 'PROCESSING...'
                     : _predictionMode == _PredictionMode.tomatoDisease
-                        ? 'CAPTURE & DETECT DISEASE'
-                        : 'CAPTURE & PREDICT',
+                        ? 'CAPTURE & CLASSIFY DISEASE'
+                        : 'CAPTURE & CLASSIFY',
             style: const TextStyle(
               letterSpacing: 0.4,
               fontWeight: FontWeight.w700,
@@ -1108,7 +1129,8 @@ class _CameraScreenState extends State<CameraScreen>
       animation: _scanController,
       builder: (context, child) {
         final progress = _scanController.value;
-        final remaining = ((_scanDurationSeconds * (1 - progress)).ceil()).clamp(0, _scanDurationSeconds);
+        final remaining = ((_scanDurationSeconds * (1 - progress)).ceil())
+            .clamp(0, _scanDurationSeconds);
         // Sweep top → bottom → top so the scan line moves up and down once per cycle.
         final double y;
         if (progress < 0.5) {
@@ -1127,7 +1149,8 @@ class _CameraScreenState extends State<CameraScreen>
                   height: 230,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.35)),
                   ),
                 ),
               ),
@@ -1269,7 +1292,7 @@ class _CameraScreenState extends State<CameraScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'AI PREDICTION',
+            'AI CLASSIFICATION',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: AppColors.primary,
@@ -1277,7 +1300,7 @@ class _CameraScreenState extends State<CameraScreen>
           ),
           const SizedBox(height: AppSizes.spacingS),
           Text(
-            result.topPrediction ?? 'No object detected',
+            result.topPrediction ?? 'No class detected',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -1294,7 +1317,7 @@ class _CameraScreenState extends State<CameraScreen>
           if (result.predictions.isNotEmpty) ...[
             const SizedBox(height: AppSizes.spacingS),
             Text(
-              'Detections: ${result.predictions.join(', ')}',
+              'Ranked classes: ${result.predictions.join(', ')}',
               style: theme.textTheme.bodyMedium,
             ),
           ],
@@ -1393,7 +1416,8 @@ class _CameraScreenState extends State<CameraScreen>
   Widget _buildLabStreamsSection() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    if (_sourceType != CameraSourceType.labStream) return const SizedBox.shrink();
+    if (_sourceType != CameraSourceType.labStream)
+      return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(
@@ -1459,7 +1483,8 @@ class _CameraScreenState extends State<CameraScreen>
                     }
                   },
                   icon: Icon(_isStreamPlaying ? Icons.pause : Icons.play_arrow),
-                  label: Text(_isStreamPlaying ? 'Pause stream' : 'Play stream'),
+                  label:
+                      Text(_isStreamPlaying ? 'Pause stream' : 'Play stream'),
                 ),
               ),
             ],

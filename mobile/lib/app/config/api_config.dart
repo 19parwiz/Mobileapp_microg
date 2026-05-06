@@ -15,16 +15,25 @@ class ApiConfig {
     defaultValue: 'railway',
   );
   static const String _apiHostOverride = String.fromEnvironment('API_HOST');
-  static const String _apiBaseUrlOverride = String.fromEnvironment('API_BASE_URL');
+  static const String _apiBaseUrlOverride =
+      String.fromEnvironment('API_BASE_URL');
   static const String _aiHostOverride = String.fromEnvironment('AI_HOST');
-  static const String _remoteHostOverride = String.fromEnvironment('REMOTE_HOST');
-  static const String _cameraHostOverride = String.fromEnvironment('CAMERA_HOST');
+  static const String _sensorHostOverride =
+      String.fromEnvironment('SENSOR_HOST');
+  static const String _sensorBaseUrlOverride = String.fromEnvironment(
+    'SENSOR_BASE_URL',
+  );
+  static const String _remoteHostOverride =
+      String.fromEnvironment('REMOTE_HOST');
+  static const String _cameraHostOverride =
+      String.fromEnvironment('CAMERA_HOST');
   static const String _railwayBaseUrl =
       'https://mobileappmicrog-production.up.railway.app/api';
 
   static String _defaultHostForPlatform() {
     if (kIsWeb) return 'localhost';
-    if (Platform.isAndroid) return '10.0.2.2'; // Android emulator -> host machine
+    if (Platform.isAndroid)
+      return '10.0.2.2'; // Android emulator -> host machine
     return 'localhost';
   }
 
@@ -77,9 +86,7 @@ class ApiConfig {
 
   static String get aiServiceUrl {
     try {
-      final host = _aiHostOverride.isNotEmpty
-          ? _aiHostOverride
-          : remoteHost;
+      final host = _aiHostOverride.isNotEmpty ? _aiHostOverride : remoteHost;
       return 'http://$host:5000';
     } catch (_) {
       return 'http://localhost:5000';
@@ -96,6 +103,27 @@ class ApiConfig {
   static String cameraMjpegUrl(String streamPath) =>
       '$cameraMjpegBaseUrl/$streamPath';
 
-  // Sensor service shares the same endpoint as AI service in the current setup.
-  static String get sensorServiceUrl => aiServiceUrl;
+  // Sensor service can be configured separately from AI service.
+  // Examples:
+  // --dart-define=SENSOR_BASE_URL=https://<your-tunnel>.trycloudflare.com
+  // --dart-define=SENSOR_HOST=10.1.10.144
+  static String get sensorServiceUrl {
+    try {
+      if (_sensorBaseUrlOverride.isNotEmpty) {
+        return _sensorBaseUrlOverride.endsWith('/')
+            ? _sensorBaseUrlOverride.substring(
+                0,
+                _sensorBaseUrlOverride.length - 1,
+              )
+            : _sensorBaseUrlOverride;
+      }
+      if (_sensorHostOverride.isNotEmpty) {
+        return 'http://$_sensorHostOverride:5000';
+      }
+      // Backward-compatible fallback for existing setups.
+      return aiServiceUrl;
+    } catch (_) {
+      return 'http://localhost:5000';
+    }
+  }
 }

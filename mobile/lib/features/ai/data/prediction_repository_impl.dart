@@ -13,6 +13,12 @@ class PredictionRepositoryImpl implements IPredictionRepository {
   String _endpoint({required bool tomatoDisease}) =>
       tomatoDisease ? '/ai/predict-tomato-disease' : '/ai/predict';
 
+  String _normalizeClassificationWording(String message) {
+    return message
+        .replaceAll('prediction', 'classification')
+        .replaceAll('Prediction', 'Classification');
+  }
+
   PredictionResult _mapResponseToPredictionResult(Map<String, dynamic> data) {
     // Existing plant endpoint response
     if (data.containsKey('predictions') || data.containsKey('topPrediction')) {
@@ -22,8 +28,10 @@ class PredictionRepositoryImpl implements IPredictionRepository {
           : const <String>[];
 
       return PredictionResult(
-        message:
-            (data['message'] as String?) ?? 'Prediction completed successfully.',
+        message: _normalizeClassificationWording(
+          (data['message'] as String?) ??
+              'Classification completed successfully.',
+        ),
         filename: data['filename'] as String?,
         topPrediction: data['topPrediction'] as String?,
         predictions: predictions,
@@ -49,10 +57,11 @@ class PredictionRepositoryImpl implements IPredictionRepository {
         .whereType<String>()
         .toList();
 
-    final topLabel = predictedClass ?? (top3Labels.isNotEmpty ? top3Labels.first : null);
+    final topLabel =
+        predictedClass ?? (top3Labels.isNotEmpty ? top3Labels.first : null);
     final message = confidence == null
-        ? 'Tomato disease prediction completed.'
-        : 'Tomato disease prediction completed (${(confidence * 100).toStringAsFixed(1)}% confidence).';
+        ? 'Tomato disease classification completed.'
+        : 'Tomato disease classification completed (${(confidence * 100).toStringAsFixed(1)}% confidence).';
 
     return PredictionResult(
       message: message,

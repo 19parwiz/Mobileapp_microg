@@ -4,6 +4,19 @@ set MODE=%1
 set ARG2=%2
 set REMOTE_HOST=%3
 set DEVICE_SERIAL=
+set SENSOR_BASE_URL=
+
+rem Optional daily tunnel URL file (first line only).
+rem Example content: https://abc123.trycloudflare.com
+if exist ".sensor-url.txt" (
+  set /p SENSOR_BASE_URL=<.sensor-url.txt
+)
+
+set SENSOR_DEFINE=
+if not "!SENSOR_BASE_URL!"=="" (
+  echo [MOBILE] Using sensor tunnel URL from .sensor-url.txt: !SENSOR_BASE_URL!
+  set SENSOR_DEFINE=--dart-define=SENSOR_BASE_URL=!SENSOR_BASE_URL!
+)
 
 if /I "%MODE%"=="campus" (
   rem Campus mode:
@@ -26,13 +39,13 @@ if /I "%MODE%"=="campus" (
       echo Check USB debugging and connected device authorization.
       exit /b 1
     )
-    flutter run -d !DEVICE_SERIAL! --dart-define=APP_ENV=campus --dart-define=API_HOST=127.0.0.1
+    flutter run -d !DEVICE_SERIAL! --dart-define=APP_ENV=campus --dart-define=API_HOST=127.0.0.1 !SENSOR_DEFINE!
     goto :eof
   )
 
   echo [MOBILE] No physical phone detected. Using emulator/default target.
   echo [MOBILE] Backend host will use the platform default - Android emulator = 10.0.2.2
-  flutter run --dart-define=APP_ENV=campus
+  flutter run --dart-define=APP_ENV=campus !SENSOR_DEFINE!
   goto :eof
 )
 
@@ -66,19 +79,19 @@ if /I "%MODE%"=="vpn" (
     echo [MOBILE] Physical phone detected: !DEVICE_SERIAL!
     echo [MOBILE] Using adb reverse and backend host 127.0.0.1
     echo [MOBILE] Remote host: !REMOTE_HOST!
-    flutter run -d !DEVICE_SERIAL! --dart-define=APP_ENV=vpn --dart-define=API_HOST=127.0.0.1 --dart-define=REMOTE_HOST=!REMOTE_HOST!
+    flutter run -d !DEVICE_SERIAL! --dart-define=APP_ENV=vpn --dart-define=API_HOST=127.0.0.1 --dart-define=REMOTE_HOST=!REMOTE_HOST! !SENSOR_DEFINE!
     goto :eof
   )
 
   rem Option: run vpn  (off-campus + VPN + emulator/default target)
   echo [MOBILE] No physical phone override selected. Remote host: !REMOTE_HOST!
-  flutter run --dart-define=APP_ENV=vpn --dart-define=REMOTE_HOST=!REMOTE_HOST!
+  flutter run --dart-define=APP_ENV=vpn --dart-define=REMOTE_HOST=!REMOTE_HOST! !SENSOR_DEFINE!
   goto :eof
 )
 
 if /I "%MODE%"=="local" (
   echo [MOBILE] Starting local mode...
-  flutter run --dart-define=APP_ENV=local
+  flutter run --dart-define=APP_ENV=local !SENSOR_DEFINE!
   goto :eof
 )
 
