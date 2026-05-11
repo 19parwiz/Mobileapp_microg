@@ -6,15 +6,14 @@ set REMOTE_HOST=%3
 set DEVICE_SERIAL=
 set SENSOR_BASE_URL=
 
-rem Optional daily tunnel URL file (first line only).
-rem Example content: https://abc123.trycloudflare.com
-if exist ".sensor-url.txt" (
-  set /p SENSOR_BASE_URL=<.sensor-url.txt
-)
-
+rem Sensor + camera endpoints default to the stable VPS-proxied HTTPS URLs
+rem baked into ApiConfig (sensors/cam .178-88-115-9.nip.io). Override only if
+rem you want to point the app at a different host for local dev:
+rem   set SENSOR_BASE_URL=http://10.1.10.144:5000
+rem before running this script, and it will be forwarded as a --dart-define.
 set SENSOR_DEFINE=
 if not "!SENSOR_BASE_URL!"=="" (
-  echo [MOBILE] Using sensor tunnel URL from .sensor-url.txt: !SENSOR_BASE_URL!
+  echo [MOBILE] Sensor override active: !SENSOR_BASE_URL!
   set SENSOR_DEFINE=--dart-define=SENSOR_BASE_URL=!SENSOR_BASE_URL!
 )
 
