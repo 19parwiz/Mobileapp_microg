@@ -1,17 +1,18 @@
-  import 'dart:math';
+import 'dart:math';
+import '../../../core/utils/logger.dart';
 import '../domain/sensor_data.dart';
 
-/// Service for managing sensor data with mock/random data generation
+/// Mock sensor source kept around for offline/demo screens.
+/// The real dashboard uses [SensorApi] -> [RealSensorRepositoryImpl] instead.
 class SensorDataService {
   final Random _random = Random();
   final List<SensorData> _historicalData = [];
-  
-  // Current sensor values
+
+  // Last generated values; serve as the "current reading" snapshot.
   double _temperature = 24.5;
   double _humidity = 65.0;
   double _light = 850.0;
 
-  /// Get current temperature reading
   SensorData getTemperature() {
     return SensorData(
       sensorType: 'temperature',
@@ -22,7 +23,6 @@ class SensorDataService {
     );
   }
 
-  /// Get current humidity reading
   SensorData getHumidity() {
     return SensorData(
       sensorType: 'humidity',
@@ -33,7 +33,6 @@ class SensorDataService {
     );
   }
 
-  /// Get current light reading
   SensorData getLight() {
     return SensorData(
       sensorType: 'light',
@@ -44,70 +43,58 @@ class SensorDataService {
     );
   }
 
-  /// Get all current sensor readings
   List<SensorData> getAllSensors() {
-    return [
-      getTemperature(),
-      getHumidity(),
-      getLight(),
-    ];
+    return [getTemperature(), getHumidity(), getLight()];
   }
 
-  /// Generate random sensor data for demo purposes
-  /// NOTE: This is MOCK DATA - no real sensors are connected!
-  /// Data is generated randomly for testing/demo purposes only.
+  /// Roll a new random snapshot. NOT real sensor data — purely for demos
+  /// and widget catalogues.
   void generateRandomData() {
-    // Temperature: 18-28°C
-    _temperature = 18.0 + _random.nextDouble() * 10.0;
-    _temperature = double.parse(_temperature.toStringAsFixed(1));
-    
-    // Humidity: 50-80%
-    _humidity = 50.0 + _random.nextDouble() * 30.0;
-    _humidity = double.parse(_humidity.toStringAsFixed(1));
-    
-    // Light: 300-1200 lux
-    _light = 300.0 + _random.nextDouble() * 900.0;
-    _light = double.parse(_light.toStringAsFixed(0));
-    
-    // Log to console where data is coming from
-    print('📊 [SensorDataService] Generating MOCK sensor data:');
-    print('   🌡️  Temperature: $_temperature°C (MOCK - Random: 18-28°C)');
-    print('   💧 Humidity: $_humidity% (MOCK - Random: 50-80%)');
-    print('   💡 Light: $_light lux (MOCK - Random: 300-1200 lux)');
-    print('   ⚠️  WARNING: No real sensors connected! This is simulated data.');
-    
-    // Add to historical data
+    _temperature = double.parse(
+      (18.0 + _random.nextDouble() * 10.0).toStringAsFixed(1),
+    );
+    _humidity = double.parse(
+      (50.0 + _random.nextDouble() * 30.0).toStringAsFixed(1),
+    );
+    _light = double.parse(
+      (300.0 + _random.nextDouble() * 900.0).toStringAsFixed(0),
+    );
+
+    AppLogger.d(
+      '[SENSOR][MOCK] New random snapshot: '
+      'temp=${_temperature}°C humidity=$_humidity% light=${_light}lux',
+    );
+
     _historicalData.addAll(getAllSensors());
-    
-    // Keep only last 24 hours of data (assuming 1 reading per minute = 1440 readings)
+
+    // Cap history at ~24h (1440 readings at 1/min) so we don't grow forever.
     if (_historicalData.length > 1440) {
       _historicalData.removeRange(0, _historicalData.length - 1440);
     }
   }
 
-  /// Get historical data for charts (last N hours)
+  /// Returns history for charts. If we don't have enough yet, backfill it.
   List<SensorData> getHistoricalData({
     int hours = 24,
     String? sensorType,
   }) {
     final cutoffTime = DateTime.now().subtract(Duration(hours: hours));
-    
+
     var filtered = _historicalData.where((data) {
       final matchesType = sensorType == null || data.sensorType == sensorType;
       final isRecent = data.timestamp.isAfter(cutoffTime);
       return matchesType && isRecent;
     }).toList();
-    
-    // If not enough historical data, generate some
+
     if (filtered.length < 10) {
       _generateHistoricalData(hours: hours, sensorType: sensorType);
       return getHistoricalData(hours: hours, sensorType: sensorType);
     }
-    
+
     return filtered;
   }
 
-  /// Generate historical data for charts
+  /// Backfill: builds a fake series at 5-minute steps over the requested window.
   void _generateHistoricalData({required int hours, String? sensorType}) {
     final now = DateTime.now();
     final baseValues = {
@@ -115,11 +102,11 @@ class SensorDataService {
       'humidity': 65.0,
       'light': 850.0,
     };
-    
+
     for (int i = hours * 60; i >= 0; i -= 5) {
       final timestamp = now.subtract(Duration(minutes: i));
       final variation = (_random.nextDouble() - 0.5) * 2.0;
-      
+
       if (sensorType == null || sensorType == 'temperature') {
         final value = baseValues['temperature']! + variation * 3;
         _historicalData.add(SensorData(
@@ -129,7 +116,7 @@ class SensorDataService {
           timestamp: timestamp,
         ));
       }
-      
+
       if (sensorType == null || sensorType == 'humidity') {
         final value = baseValues['humidity']! + variation * 5;
         _historicalData.add(SensorData(
@@ -139,7 +126,7 @@ class SensorDataService {
           timestamp: timestamp,
         ));
       }
-      
+
       if (sensorType == null || sensorType == 'light') {
         final value = baseValues['light']! + variation * 100;
         _historicalData.add(SensorData(
@@ -150,25 +137,25 @@ class SensorDataService {
         ));
       }
     }
+
+    AppLogger.d(
+      '[SENSOR][MOCK] Backfilled ${_historicalData.length} historical points '
+      '(window=${hours}h, type=${sensorType ?? 'all'})',
+    );
   }
 
-  /// Determine trend direction based on value and optimal range
+  /// Compares against a noisy "previous" value, so the UI sees an arrow
+  /// even on the first tick.
   TrendDirection? _getTrend(double value, double minOptimal, double maxOptimal) {
     final previousValue = _getPreviousValue(value);
     if (previousValue == null) return TrendDirection.stable;
-    
-    if (value > previousValue) {
-      return TrendDirection.up;
-    } else if (value < previousValue) {
-      return TrendDirection.down;
-    } else {
-      return TrendDirection.stable;
-    }
+
+    if (value > previousValue) return TrendDirection.up;
+    if (value < previousValue) return TrendDirection.down;
+    return TrendDirection.stable;
   }
 
   double? _getPreviousValue(double currentValue) {
-    // Simple implementation: return a value slightly different
     return currentValue + (_random.nextDouble() - 0.5) * 2.0;
   }
 }
-

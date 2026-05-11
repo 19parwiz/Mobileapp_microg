@@ -1,8 +1,10 @@
+import '../../../core/utils/logger.dart';
 import '../domain/entities/sensor_dashboard_data.dart';
 import '../domain/repositories/i_sensor_repository.dart';
 import 'sensor_data_service.dart';
 
-/// Data-layer implementation backed by the existing mock/random generator.
+/// Mock-data implementation kept around for screens that don't (yet) hit the
+/// real sensor service. The dashboard uses [RealSensorRepositoryImpl] instead.
 class SensorRepositoryImpl implements ISensorRepository {
   final SensorDataService _service;
 
@@ -10,11 +12,8 @@ class SensorRepositoryImpl implements ISensorRepository {
 
   @override
   SensorDashboardData getDashboardData({required bool refresh, int hours = 24}) {
-    print('📡 [SensorRepositoryImpl] Getting sensor data (refresh: $refresh)');
-    print('   📍 Source: MOCK DATA from SensorDataService (no real sensors connected)');
-    
     if (refresh) {
-      print('    Refreshing sensor data...');
+      AppLogger.d('[SENSOR][MOCK] Refreshing dashboard data');
       _service.generateRandomData();
     }
 
@@ -22,10 +21,11 @@ class SensorRepositoryImpl implements ISensorRepository {
       sensorData: _service.getAllSensors(),
       chartData: _service.getHistoricalData(hours: hours),
     );
-    
-    print('    Returned ${data.sensorData.length} sensor readings');
+
+    AppLogger.d(
+      '[SENSOR][MOCK] Returned ${data.sensorData.length} readings, '
+      '${data.chartData.length} chart points (window=${hours}h)',
+    );
     return data;
   }
 }
-
-
